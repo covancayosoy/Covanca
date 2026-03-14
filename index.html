@@ -353,6 +353,130 @@
   .btn-modal-no:hover { background: #e5e7eb; }
   @media (max-width: 600px) { .cats-producto { grid-template-columns: repeat(3,1fr); } }
 </style>
+
+<!-- Firebase + Cloudinary -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyD8pRER1sydnu6qK7FVourD2rPYueHtNEI",
+    authDomain: "covanca-23baf.firebaseapp.com",
+    projectId: "covanca-23baf",
+    storageBucket: "covanca-23baf.firebasestorage.app",
+    messagingSenderId: "580501266303",
+    appId: "1:580501266303:web:df70995602b567b083444a"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const CLOUD = 'ds76fgy5m';
+  const PRESET = 'covanca_productos';
+
+  async function subirImagen(file) {
+    var fd = new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', PRESET);
+    var res = await fetch('https://api.cloudinary.com/v1_1/' + CLOUD + '/image/upload', { method: 'POST', body: fd });
+    var data = await res.json();
+    if (!data.secure_url) throw new Error('Error subiendo imagen');
+    return data.secure_url;
+  }
+
+  window.subirYPublicar = async function(plan, precioPlan) {
+    var nombre = document.getElementById('nombreProducto').value.trim();
+    var precio = document.getElementById('precioProducto') ? document.getElementById('precioProducto').value.trim() : '';
+    var cat = window.categoriaSeleccionada || '';
+
+    if (!nombre) { alert('Escribe el nombre del producto'); return; }
+    if (!precio) { alert('Escribe el precio del producto'); return; }
+    if (!cat) { alert('Escoge una categoría'); return; }
+
+    // Recolectar caracteristicas
+    var caract = {};
+    var campos = document.querySelectorAll('#camposDinamicos .campo-item');
+    for (var i = 0; i < campos.length; i++) {
+      var etq = campos[i].querySelector('.campo-etiqueta');
+      var val = campos[i].querySelector('.campo-input');
+      if (etq && val && val.value.trim()) caract[etq.textContent.trim()] = val.value.trim();
+    }
+
+    var btn = document.getElementById('btn-pub-' + plan);
+    if (btn) { btn.textContent = '⏳ Publicando...'; btn.style.pointerEvents = 'none'; }
+
+    try {
+      var imgUrl = '';
+      var fileInput = document.getElementById('fotoProducto');
+      if (fileInput && fileInput.files && fileInput.files[0]) {
+        imgUrl = await subirImagen(fileInput.files[0]);
+      }
+
+      await addDoc(collection(db, 'productos'), {
+        nombre: nombre,
+        imagen: imgUrl,
+        precio: precio,
+        categoria: cat,
+        plan: plan,
+        caracteristicas: caract,
+        fecha: new Date().toISOString()
+      });
+
+      // WhatsApp
+      var caractStr = Object.keys(caract).map(function(k){ return k + ': ' + caract[k]; }).join(', ');
+      var msg = encodeURIComponent(
+        '¡Hola! Quiero vender mi producto:\n' +
+        '🏷️ *' + nombre + '*\n' +
+        '💰 Precio: ' + precio + '\n' +
+        '📦 Categoría: ' + cat + '\n' +
+        (caractStr ? '📋 Características: ' + caractStr + '\n' : '') +
+        '🎯 Plan: ' + plan + ' (' + precioPlan + ')'
+      );
+      window.open('https://wa.me/573043381708?text=' + msg, '_blank');
+      alert('✅ ¡Producto publicado exitosamente!');
+
+    } catch(e) {
+      console.error(e);
+      alert('❌ Error al publicar: ' + e.message);
+    }
+
+    if (btn) { btn.textContent = '📲 Elegir plan'; btn.style.pointerEvents = 'auto'; }
+  };
+
+  // Escuchar productos en tiempo real
+  var q = query(collection(db, 'productos'), orderBy('fecha', 'desc'));
+  onSnapshot(q, function(snap) {
+    var grid = document.getElementById('grid-productos-dinamicos');
+    if (!grid) return;
+    grid.innerHTML = '';
+    snap.forEach(function(d) {
+      var p = d.data();
+      var caractHtml = '';
+      if (p.caracteristicas) {
+        Object.keys(p.caracteristicas).forEach(function(k) {
+          caractHtml += '<span style="font-size:11px;color:#6b7280;display:block;">' + k + ': <strong>' + p.caracteristicas[k] + '</strong></span>';
+        });
+      }
+      var waMsg = encodeURIComponent('Hola, me interesa: *' + p.nombre + '* por ' + p.precio);
+      var div = document.createElement('div');
+      div.className = 'card';
+      div.innerHTML =
+        '<div class="card-img-wrap">' +
+        (p.imagen ? '<img src="' + p.imagen + '" alt="' + p.nombre + '">' : '<div style="height:185px;background:#f1f4f9;display:flex;align-items:center;justify-content:center;font-size:40px;">📦</div>') +
+        '<button class="btn-favorito" onclick="toggleFavorito(this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff3b5c" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>' +
+        '<span class="card-badge nuevo">' + (p.categoria || 'Nuevo') + '</span>' +
+        '</div>' +
+        '<div class="card-body">' +
+        '<div class="card-nombre">' + p.nombre + '</div>' +
+        '<div class="card-estrellas"><span class="estrellas">★★★★★</span><span class="num-resenas">Nuevo</span></div>' +
+        (caractHtml ? '<div style="margin:4px 0 6px;">' + caractHtml + '</div>' : '') +
+        '<div class="card-precio"><span class="precio-actual">' + p.precio + '</span></div>' +
+        '<a href="https://wa.me/573043381708?text=' + waMsg + '" target="_blank" class="btn-carrito-card" style="display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</a>' +
+        '</div>';
+      grid.appendChild(div);
+    });
+  });
+</script>
 </head>
 <body>
 
@@ -467,7 +591,9 @@
         </div>
       </div>
     </div>
-  </section>
+  
+  <div id="grid-productos-dinamicos" class="grid" style="padding:0 50px 20px;"></div>
+</section>
 
   <section class="beneficios">
     <h2>¿Por qué elegir Covanca?</h2>
@@ -498,7 +624,7 @@
     <p class="subtitulo">Sube tu producto, elige un plan y lo movemos por ti.</p>
     <div class="vende-form">
       <label>📸 Foto del producto</label>
-      <input type="file" accept="image/*" onchange="mostrarImagen(event)">
+      <input type="file" id="fotoProducto" accept="image/*" onchange="mostrarImagen(event)">
       <img id="preview" class="preview-img" alt="Vista previa">
       <label>🏷️ Nombre del producto</label>
       <input type="text" id="nombreProducto" placeholder="Ej: Zapatos Nike talla 42" oninput="actualizarNombre()">
@@ -520,6 +646,9 @@
       </div>
       <label style="margin-top:20px;">💰 Precio del producto</label>
       <input type="text" id="precioProducto" placeholder="Ej: $35.000" style="width:100%;padding:10px 13px;border:2px solid #e5e7eb;border-radius:10px;font-family:'Poppins',sans-serif;font-size:14px;outline:none;margin-bottom:4px;">
+
+      <label style="margin-top:20px;">💰 Precio del producto</label>
+      <input type="text" id="precioProducto" placeholder="Ej: $35.000" style="width:100%;padding:10px 13px;border:2px solid #e5e7eb;border-radius:10px;font-family:'Poppins',sans-serif;font-size:14px;outline:none;box-sizing:border-box;">
 
       <label style="margin-top:20px;">🧨‼️Escoge la categoría de tu producto‼️🧨</label>
       <div class="cats-producto">
@@ -543,19 +672,19 @@
           <h3>⚡ Vender rápido</h3>
           <div class="precio">$13.200</div>
           <p>⏱ 48 horas</p><p>💬 Chat incluido</p><p>🚚 Envío gratis</p><p>📦 Se recoge</p>
-          <a class="btn-elegir naranja" href="#" onclick="elegirPlan('48h','$13.200')">📲 Elegir plan</a>
+          <a class="btn-elegir naranja" href="#" id="btn-pub-48h" onclick="subirYPublicar('48h','$13.200')">📲 Elegir plan</a>
         </div>
         <div class="plan-card">
           <h3>🕐 Precio medio</h3>
           <div class="precio">$9.400</div>
           <p>⏱ 64 horas</p><p>💬 Chat incluido</p><p>🚚 Envío: $300</p><p>📦 Se recoge</p>
-          <a class="btn-elegir" href="#" onclick="elegirPlan('64h','$9.400')">📲 Elegir plan</a>
+          <a class="btn-elegir" href="#" id="btn-pub-64h" onclick="subirYPublicar('64h','$9.400')">📲 Elegir plan</a>
         </div>
         <div class="plan-card">
           <h3>🐢 Sin prisa</h3>
           <div class="precio">$0.000</div>
           <p>⏱ Sin plazo</p><p>💬 Chat incluido</p><p>🚚 Envío: $700</p><p>📦 Se recoge</p>
-          <a class="btn-elegir" href="#" onclick="elegirPlan('Gratis','$0.000')">📲 Elegir plan</a>
+          <a class="btn-elegir" href="#" id="btn-pub-gratis" onclick="subirYPublicar('Gratis','$0.000')">📲 Elegir plan</a>
         </div>
       </div>
       <div class="aviso-devolucion">✅ <strong>Garantía total:</strong> Devolución del 100% si pasa el plazo.</div>
@@ -587,7 +716,7 @@
     <div class="footer-logo">Co<span>van</span>ca</div>
     <div class="footer-divider"></div>
     <p>WhatsApp: <a href="https://wa.me/573043381708">3043381708</a></p>
-    <p>Email: <a href="/cdn-cgi/l/email-protection#d2b1bda4b3bcb1b392b5bfb3bbbefcb1bdbf"><span class="__cf_email__" data-cfemail="1f7c70697e717c7e5f78727e7673317c7072">[email&#160;protected]</span></a></p>
+    <p>Email: <a href="mailto:covanca@gmail.com">covanca@gmail.com</a></p>
     <h3>Servicios disponibles</h3>
     <ul>
       <li>💄 Maquillaje · 💅 Uñas · ✂️ Peluquería</li>
