@@ -54,6 +54,25 @@
     var el = document.getElementById('nombreMostrado');
     if (el) el.textContent = document.getElementById('nombreProducto').value;
   }
+
+  function formatearPrecio(input) {
+    var val = input.value;
+    // Quitar todo excepto numeros y puntos
+    val = val.replace(/[^0-9.]/g, '');
+    // Quitar puntos duplicados
+    var partes = val.split('.');
+    if (partes.length > 2) val = partes[0] + '.' + partes.slice(1).join('');
+    // Si no tiene punto, agregar separador de miles
+    if (val.indexOf('.') === -1 && val.length > 3) {
+      val = val.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+    // Agregar $ al inicio
+    if (val && val.charAt(0) !== '$') {
+      input.value = '$' + val;
+    } else if (val) {
+      input.value = '$' + val.replace('$', '');
+    }
+  }
   function quitarCampo(btn) { btn.closest('.campo-item').remove(); }
   function agregarCampo() {
     var nombre = document.getElementById('nuevoNombre').value.trim();
@@ -639,7 +658,7 @@
         <button onclick="agregarCampo()" style="padding:9px 14px;background:#002366;color:white;border:none;border-radius:10px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:13px;font-weight:600;">➕ Agregar</button>
       </div>
       <label style="margin-top:20px;">💰 Precio del producto</label>
-      <input type="text" id="precioProducto" placeholder="Ej: $35.000" style="width:100%;padding:10px 13px;border:2px solid #e5e7eb;border-radius:10px;font-family:'Poppins',sans-serif;font-size:14px;outline:none;box-sizing:border-box;">
+      <input type="text" id="precioProducto" placeholder="Ej: 35000" oninput="formatearPrecio(this)" style="width:100%;padding:10px 13px;border:2px solid #e5e7eb;border-radius:10px;font-family:'Poppins',sans-serif;font-size:14px;outline:none;box-sizing:border-box;">
 
       <label style="margin-top:20px;">🧨‼️Escoge la categoría de tu producto‼️🧨</label>
       <div class="cats-producto">
