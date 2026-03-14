@@ -56,22 +56,16 @@
   }
 
   function formatearPrecio(input) {
+    // Guardar posicion del cursor
+    var pos = input.selectionStart;
     var val = input.value;
-    // Quitar todo excepto numeros y puntos
-    val = val.replace(/[^0-9.]/g, '');
-    // Quitar puntos duplicados
-    var partes = val.split('.');
-    if (partes.length > 2) val = partes[0] + '.' + partes.slice(1).join('');
-    // Si no tiene punto, agregar separador de miles
-    if (val.indexOf('.') === -1 && val.length > 3) {
-      val = val.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    }
-    // Agregar $ al inicio
-    if (val && val.charAt(0) !== '$') {
-      input.value = '$' + val;
-    } else if (val) {
-      input.value = '$' + val.replace('$', '');
-    }
+    // Quitar $ y puntos, dejar solo numeros
+    var soloNumeros = val.replace(/[^0-9]/g, '');
+    if (!soloNumeros) { input.value = ''; return; }
+    // Formatear con puntos de miles
+    var numero = parseInt(soloNumeros, 10);
+    var formateado = '$' + numero.toLocaleString('es-CO').replace(/,/g, '.');
+    input.value = formateado;
   }
   function quitarCampo(btn) { btn.closest('.campo-item').remove(); }
   function agregarCampo() {
