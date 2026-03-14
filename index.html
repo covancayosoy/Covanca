@@ -401,45 +401,39 @@
       if (etq && val && val.value.trim()) caract[etq.textContent.trim()] = val.value.trim();
     }
 
-    var btn = document.getElementById('btn-pub-' + plan);
-    if (btn) { btn.textContent = '⏳ Publicando...'; btn.style.pointerEvents = 'none'; }
+    // 1. WhatsApp PRIMERO - inmediato
+    var caractStr = Object.keys(caract).map(function(k){ return k + ': ' + caract[k]; }).join(', ');
+    var msg = encodeURIComponent(
+      '¡Hola! Quiero vender mi producto:\n' +
+      '🏷️ *' + nombre + '*\n' +
+      '💰 Precio: ' + precio + '\n' +
+      '📦 Categoría: ' + cat + '\n' +
+      (caractStr ? '📋 Características: ' + caractStr + '\n' : '') +
+      '🎯 Plan: ' + plan + ' (' + precioPlan + ')'
+    );
+    window.open('https://wa.me/573043381708?text=' + msg, '_blank');
 
-    try {
-      var imgUrl = '';
-      var fileInput = document.getElementById('fotoProducto');
-      if (fileInput && fileInput.files && fileInput.files[0]) {
-        imgUrl = await subirImagen(fileInput.files[0]);
+    // 2. Firebase + Cloudinary en segundo plano
+    var fileInput = document.getElementById('fotoProducto');
+    var fileToUpload = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+
+    (async function() {
+      try {
+        var imgUrl = '';
+        if (fileToUpload) imgUrl = await subirImagen(fileToUpload);
+        await addDoc(collection(db, 'productos'), {
+          nombre: nombre,
+          imagen: imgUrl,
+          precio: precio,
+          categoria: cat,
+          plan: plan,
+          caracteristicas: caract,
+          fecha: new Date().toISOString()
+        });
+      } catch(e) {
+        console.error('Error guardando en segundo plano:', e);
       }
-
-      await addDoc(collection(db, 'productos'), {
-        nombre: nombre,
-        imagen: imgUrl,
-        precio: precio,
-        categoria: cat,
-        plan: plan,
-        caracteristicas: caract,
-        fecha: new Date().toISOString()
-      });
-
-      // WhatsApp
-      var caractStr = Object.keys(caract).map(function(k){ return k + ': ' + caract[k]; }).join(', ');
-      var msg = encodeURIComponent(
-        '¡Hola! Quiero vender mi producto:\n' +
-        '🏷️ *' + nombre + '*\n' +
-        '💰 Precio: ' + precio + '\n' +
-        '📦 Categoría: ' + cat + '\n' +
-        (caractStr ? '📋 Características: ' + caractStr + '\n' : '') +
-        '🎯 Plan: ' + plan + ' (' + precioPlan + ')'
-      );
-      window.open('https://wa.me/573043381708?text=' + msg, '_blank');
-      alert('✅ ¡Producto publicado exitosamente!');
-
-    } catch(e) {
-      console.error(e);
-      alert('❌ Error al publicar: ' + e.message);
-    }
-
-    if (btn) { btn.textContent = '📲 Elegir plan'; btn.style.pointerEvents = 'auto'; }
+    })();
   };
 
   // Escuchar productos en tiempo real
@@ -592,7 +586,7 @@
       </div>
     </div>
   
-  <div id="grid-productos-dinamicos" class="grid" style="padding:0 50px 20px;"></div>
+  <div id="grid-productos-dinamicos" class="grid"></div>
 </section>
 
   <section class="beneficios">
@@ -644,9 +638,6 @@
         <input type="text" id="nuevoNombre" placeholder="Nombre del campo personalizado" style="flex:1;padding:9px 12px;border:2px solid #e5e7eb;border-radius:10px;font-family:'Poppins',sans-serif;font-size:13px;outline:none;">
         <button onclick="agregarCampo()" style="padding:9px 14px;background:#002366;color:white;border:none;border-radius:10px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:13px;font-weight:600;">➕ Agregar</button>
       </div>
-      <label style="margin-top:20px;">💰 Precio del producto</label>
-      <input type="text" id="precioProducto" placeholder="Ej: $35.000" style="width:100%;padding:10px 13px;border:2px solid #e5e7eb;border-radius:10px;font-family:'Poppins',sans-serif;font-size:14px;outline:none;margin-bottom:4px;">
-
       <label style="margin-top:20px;">💰 Precio del producto</label>
       <input type="text" id="precioProducto" placeholder="Ej: $35.000" style="width:100%;padding:10px 13px;border:2px solid #e5e7eb;border-radius:10px;font-family:'Poppins',sans-serif;font-size:14px;outline:none;box-sizing:border-box;">
 
