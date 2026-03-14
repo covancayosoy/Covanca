@@ -40,7 +40,8 @@
       var p = guardados[keys[i]];
       var div = document.createElement('div');
       div.className = 'card';
-      div.innerHTML = '<div class="card-img-wrap"><img src="' + p.img + '" alt="' + p.nombre + '"></div><div class="card-body"><div class="card-nombre">' + p.nombre + '</div><div class="card-precio"><span class="precio-actual">' + p.precio + '</span></div><button class="btn-carrito-card">Añadir al carrito</button></div>';
+      var waMsg = encodeURIComponent('Hola, me interesa comprar: *' + p.nombre + '* por ' + p.precio);
+      div.innerHTML = '<div class="card-img-wrap"><img src="' + p.img + '" alt="' + p.nombre + '"></div><div class="card-body"><div class="card-nombre">' + p.nombre + '</div><div class="card-precio"><span class="precio-actual">' + p.precio + '</span></div><a href="https://wa.me/573043381708?text=' + waMsg + '" target="_blank" class="btn-carrito-card" style="display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</a></div>';
       grid.appendChild(div);
     }
   }
@@ -93,13 +94,27 @@
     document.querySelector('.planes-grid').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  function elegirPlan(plan, precio) {
+  function elegirPlan(plan, precioPlan) {
     var nombre = document.getElementById('nombreProducto').value || 'mi producto';
+    var precioProducto = document.getElementById('precioProducto') ? document.getElementById('precioProducto').value || 'No especificado' : 'No especificado';
     var cat = categoriaSeleccionada || 'Sin categoría';
+    // Recolectar caracteristicas
+    var caract = '';
+    var campos = document.querySelectorAll('#camposDinamicos .campo-item');
+    for (var i = 0; i < campos.length; i++) {
+      var etiqueta = campos[i].querySelector('.campo-etiqueta');
+      var valor = campos[i].querySelector('.campo-input');
+      if (etiqueta && valor && valor.value.trim()) {
+        caract += '\n   • ' + etiqueta.textContent + ': ' + valor.value.trim();
+      }
+    }
     var msg = encodeURIComponent(
-      '¡Hola! Subí el producto: *' + nombre + '*\n' +
+      '¡Hola! Quiero vender mi producto:\n' +
+      '🏷️ *' + nombre + '*\n' +
+      '💰 Precio: ' + precioProducto + '\n' +
       '📦 Categoría: ' + cat + '\n' +
-      '🎯 Plan elegido: ' + plan + ' (' + precio + ')'
+      (caract ? '📋 Características:' + caract + '\n' : '') +
+      '🎯 Plan elegido: ' + plan + ' (' + precioPlan + ')'
     );
     window.open('https://wa.me/573043381708?text=' + msg, '_blank');
   }
@@ -338,137 +353,6 @@
   .btn-modal-no:hover { background: #e5e7eb; }
   @media (max-width: 600px) { .cats-producto { grid-template-columns: repeat(3,1fr); } }
 </style>
-
-<!-- Firebase -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyD8pRER1sydnu6qK7FVourD2rPYueHtNEI",
-    authDomain: "covanca-23baf.firebaseapp.com",
-    projectId: "covanca-23baf",
-    storageBucket: "covanca-23baf.firebasestorage.app",
-    messagingSenderId: "580501266303",
-    appId: "1:580501266303:web:df70995602b567b083444a"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  // Cloudinary config
-  const CLOUDINARY_CLOUD = 'ds76fgy5m';
-  const CLOUDINARY_PRESET = 'covanca_productos';
-
-  // Subir imagen a Cloudinary
-  async function subirImagenCloudinary(file) {
-    var formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', CLOUDINARY_PRESET);
-    var res = await fetch('https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/image/upload', {
-      method: 'POST',
-      body: formData
-    });
-    var data = await res.json();
-    return data.secure_url;
-  }
-
-  // Guardar producto en Firestore
-  window.publicarProducto = async function(nombre, imgUrl, precio, categoria, plan) {
-    try {
-      await addDoc(collection(db, 'productos'), {
-        nombre: nombre,
-        imagen: imgUrl,
-        precio: precio,
-        categoria: categoria,
-        plan: plan,
-        fecha: new Date().toISOString()
-      });
-      return true;
-    } catch(e) {
-      console.error('Error guardando:', e);
-      return false;
-    }
-  };
-
-  // Cargar productos desde Firestore y mostrarlos
-  window.cargarProductos = async function() {
-    try {
-      var grid = document.getElementById('grid-productos-dinamicos');
-      if (!grid) return;
-      var q = query(collection(db, 'productos'), orderBy('fecha', 'desc'));
-      var snap = await getDocs(q);
-      snap.forEach(function(doc) {
-        var p = doc.data();
-        var div = document.createElement('div');
-        div.className = 'card';
-        var waMsg = encodeURIComponent('Hola, me interesa: *' + p.nombre + '* - ' + p.precio);
-        var waUrl = 'https://wa.me/573043381708?text=' + waMsg;
-        div.innerHTML =
-          '<div class="card-img-wrap">' +
-          '<img src="' + p.imagen + '" alt="Vista producto">' +
-          '<button class="btn-favorito" onclick="toggleFavorito(this)">' +
-          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff3b5c" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
-          '</button></div>' +
-          '<div class="card-body">' +
-          '<div class="card-nombre">' + p.nombre + '</div>' +
-          '<div class="card-estrellas"><span class="estrellas">★★★★★</span><span class="num-resenas">Nuevo</span></div>' +
-          '<div class="card-precio"><span class="precio-actual">' + p.precio + '</span></div>' +
-          '<a href="' + waUrl + '" target="_blank" class="btn-carrito-card" style="display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;">' +
-          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</a>' +
-          '</div>';
-        grid.appendChild(div);
-      });
-    } catch(e) {
-      console.error('Error cargando productos:', e);
-    }
-  };
-
-  // Función para subir imagen y publicar
-  window.subirYPublicar = async function(plan, precio) {
-    var fileInput = document.getElementById('fotoProducto');
-    var nombre = document.getElementById('nombreProducto').value.trim();
-    var cat = window.categoriaSeleccionada || 'Sin categoría';
-
-    if (!nombre) { alert('Escribe el nombre del producto'); return; }
-    if (!cat || cat === 'Sin categoría') { alert('Escoge una categoría'); return; }
-
-    var btnPublicar = document.getElementById('btn-publicar-' + plan);
-    if (btnPublicar) { btnPublicar.textContent = '⏳ Publicando...'; btnPublicar.disabled = true; }
-
-    try {
-      var imgUrl = '';
-      if (fileInput && fileInput.files && fileInput.files[0]) {
-        imgUrl = await subirImagenCloudinary(fileInput.files[0]);
-      }
-
-      var guardado = await window.publicarProducto(nombre, imgUrl, precio, cat, plan);
-
-      if (guardado) {
-        // Enviar WhatsApp
-        var msg = encodeURIComponent(
-          '¡Hola! Subí el producto: *' + nombre + '*\n' +
-          '📦 Categoría: ' + cat + '\n' +
-          '🎯 Plan elegido: ' + plan + ' (' + precio + ')'
-        );
-        window.open('https://wa.me/573043381708?text=' + msg, '_blank');
-        alert('✅ ¡Producto publicado exitosamente!');
-        // Recargar productos
-        window.cargarProductos();
-      }
-    } catch(e) {
-      alert('Error al publicar. Intenta de nuevo.');
-      console.error(e);
-    }
-
-    if (btnPublicar) { btnPublicar.textContent = '📲 Elegir plan'; btnPublicar.disabled = false; }
-  };
-
-  // Cargar productos al iniciar
-  document.addEventListener('DOMContentLoaded', function() {
-    window.cargarProductos();
-  });
-</script>
 </head>
 <body>
 
@@ -583,11 +467,7 @@
         </div>
       </div>
     </div>
-  
-  <!-- Productos subidos por vendedores -->
-  <div id="grid-productos-dinamicos" class="grid" style="margin-top:20px;"></div>
-
-</section>
+  </section>
 
   <section class="beneficios">
     <h2>¿Por qué elegir Covanca?</h2>
@@ -618,7 +498,7 @@
     <p class="subtitulo">Sube tu producto, elige un plan y lo movemos por ti.</p>
     <div class="vende-form">
       <label>📸 Foto del producto</label>
-      <input type="file" id="fotoProducto" accept="image/*" onchange="mostrarImagen(event)">
+      <input type="file" accept="image/*" onchange="mostrarImagen(event)">
       <img id="preview" class="preview-img" alt="Vista previa">
       <label>🏷️ Nombre del producto</label>
       <input type="text" id="nombreProducto" placeholder="Ej: Zapatos Nike talla 42" oninput="actualizarNombre()">
@@ -638,6 +518,9 @@
         <input type="text" id="nuevoNombre" placeholder="Nombre del campo personalizado" style="flex:1;padding:9px 12px;border:2px solid #e5e7eb;border-radius:10px;font-family:'Poppins',sans-serif;font-size:13px;outline:none;">
         <button onclick="agregarCampo()" style="padding:9px 14px;background:#002366;color:white;border:none;border-radius:10px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:13px;font-weight:600;">➕ Agregar</button>
       </div>
+      <label style="margin-top:20px;">💰 Precio del producto</label>
+      <input type="text" id="precioProducto" placeholder="Ej: $35.000" style="width:100%;padding:10px 13px;border:2px solid #e5e7eb;border-radius:10px;font-family:'Poppins',sans-serif;font-size:14px;outline:none;margin-bottom:4px;">
+
       <label style="margin-top:20px;">🧨‼️Escoge la categoría de tu producto‼️🧨</label>
       <div class="cats-producto">
         <div class="cat-prod-item" onclick="seleccionarCategoria(this, 'Ropa')"><div class="cat-prod-icono">👗</div><div class="cat-prod-nombre">Ropa</div></div>
@@ -660,19 +543,19 @@
           <h3>⚡ Vender rápido</h3>
           <div class="precio">$13.200</div>
           <p>⏱ 48 horas</p><p>💬 Chat incluido</p><p>🚚 Envío gratis</p><p>📦 Se recoge</p>
-          <a class="btn-elegir naranja" href="#" id="btn-publicar-48h" onclick="subirYPublicar('48h','$13.200')">📲 Elegir plan</a>
+          <a class="btn-elegir naranja" href="#" onclick="elegirPlan('48h','$13.200')">📲 Elegir plan</a>
         </div>
         <div class="plan-card">
           <h3>🕐 Precio medio</h3>
           <div class="precio">$9.400</div>
           <p>⏱ 64 horas</p><p>💬 Chat incluido</p><p>🚚 Envío: $300</p><p>📦 Se recoge</p>
-          <a class="btn-elegir" href="#" id="btn-publicar-64h" onclick="subirYPublicar('64h','$9.400')">📲 Elegir plan</a>
+          <a class="btn-elegir" href="#" onclick="elegirPlan('64h','$9.400')">📲 Elegir plan</a>
         </div>
         <div class="plan-card">
           <h3>🐢 Sin prisa</h3>
           <div class="precio">$0.000</div>
           <p>⏱ Sin plazo</p><p>💬 Chat incluido</p><p>🚚 Envío: $700</p><p>📦 Se recoge</p>
-          <a class="btn-elegir" href="#" id="btn-publicar-gratis" onclick="subirYPublicar('Gratis','$0.000')">📲 Elegir plan</a>
+          <a class="btn-elegir" href="#" onclick="elegirPlan('Gratis','$0.000')">📲 Elegir plan</a>
         </div>
       </div>
       <div class="aviso-devolucion">✅ <strong>Garantía total:</strong> Devolución del 100% si pasa el plazo.</div>
@@ -704,7 +587,7 @@
     <div class="footer-logo">Co<span>van</span>ca</div>
     <div class="footer-divider"></div>
     <p>WhatsApp: <a href="https://wa.me/573043381708">3043381708</a></p>
-    <p>Email: <a href="/cdn-cgi/l/email-protection#b6d5d9c0d7d8d5d7f6d1dbd7dfda98d5d9db"><span class="__cf_email__" data-cfemail="9bf8f4edfaf5f8fadbfcf6faf2f7b5f8f4f6">[email&#160;protected]</span></a></p>
+    <p>Email: <a href="/cdn-cgi/l/email-protection#d2b1bda4b3bcb1b392b5bfb3bbbefcb1bdbf"><span class="__cf_email__" data-cfemail="1f7c70697e717c7e5f78727e7673317c7072">[email&#160;protected]</span></a></p>
     <h3>Servicios disponibles</h3>
     <ul>
       <li>💄 Maquillaje · 💅 Uñas · ✂️ Peluquería</li>
