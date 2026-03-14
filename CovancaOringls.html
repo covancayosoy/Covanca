@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Covanca — Tu Marketplace Local</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<script>
+  function mostrarVista(vista, btn) {
+    var vistas = document.querySelectorAll('.vista');
+    for (var i = 0; i < vistas.length; i++) vistas[i].classList.remove('visible');
+    var el = document.getElementById('vista-' + vista);
+    if (el) el.classList.add('visible');
+    var tabs = document.querySelectorAll('.tab-btn');
+    for (var j = 0; j < tabs.length; j++) tabs[j].classList.remove('activa');
+    if (btn) btn.classList.add('activa');
+    window.scrollTo(0, 0);
+    if (vista === 'guardados') actualizarGuardados();
+  }
+  var guardados = {};
+  function toggleFavorito(btn) {
+    btn.classList.toggle('activo');
+    var card = btn.closest('.card');
+    var nombre = card.querySelector('.card-nombre').textContent.trim();
+    var img = card.querySelector('img').src;
+    var precio = card.querySelector('.precio-actual').textContent;
+    var id = nombre.replace(/\s+/g, '-');
+    if (btn.classList.contains('activo')) {
+      guardados[id] = { nombre: nombre, img: img, precio: precio };
+    } else { delete guardados[id]; }
+  }
+  function actualizarGuardados() {
+    var grid = document.getElementById('grid-guardados');
+    var vacio = document.getElementById('guardados-vacio');
+    var keys = Object.keys(guardados);
+    grid.innerHTML = '';
+    if (keys.length === 0) { vacio.style.display = 'block'; return; }
+    vacio.style.display = 'none';
+    for (var i = 0; i < keys.length; i++) {
+      var p = guardados[keys[i]];
+      var div = document.createElement('div');
+      div.className = 'card';
+      div.innerHTML = '<div class="card-img-wrap"><img src="' + p.img + '" alt="' + p.nombre + '"></div><div class="card-body"><div class="card-nombre">' + p.nombre + '</div><div class="card-precio"><span class="precio-actual">' + p.precio + '</span></div><button class="btn-carrito-card">Añadir al carrito</button></div>';
+      grid.appendChild(div);
+    }
+  }
+  function mostrarImagen(event) {
+    var img = document.getElementById('preview');
+    img.src = URL.createObjectURL(event.target.files[0]);
+    img.style.display = 'block';
+  }
+  function actualizarNombre() {
+    var el = document.getElementById('nombreMostrado');
+    if (el) el.textContent = document.getElementById('nombreProducto').value;
+  }
+  function quitarCampo(btn) { btn.closest('.campo-item').remove(); }
+  function agregarCampo() {
+    var nombre = document.getElementById('nuevoNombre').value.trim();
+    if (!nombre) { alert('Escribe el nombre del campo'); return; }
+    var div = document.createElement('div');
+    div.className = 'campo-item';
+    div.innerHTML = '<div class="campo-fila"><span class="campo-etiqueta">' + nombre + '</span><input type="text" class="campo-input" placeholder="Escribe el valor..."><button class="btn-quitar" onclick="quitarCampo(this)">X</button></div>';
+    document.getElementById('camposDinamicos').appendChild(div);
+    document.getElementById('nuevoNombre').value = '';
+  }
+  var categoriaSeleccionada = '';
+  var categoriaElemento = null;
+
+  function seleccionarCategoria(el, nombre) {
+    // Quitar selección anterior
+    var items = document.querySelectorAll('.cat-prod-item');
+    for (var i = 0; i < items.length; i++) items[i].classList.remove('seleccionada');
+    // Marcar la nueva
+    el.classList.add('seleccionada');
+    categoriaSeleccionada = nombre;
+    categoriaElemento = el;
+    // Mostrar modal
+    document.getElementById('modal-cat').textContent = nombre;
+    document.getElementById('modalConfirmacion').classList.add('visible');
+  }
+
+  function cerrarModal() {
+    document.getElementById('modalConfirmacion').classList.remove('visible');
+    // Quitar selección si cancela
+    if (categoriaElemento) categoriaElemento.classList.remove('seleccionada');
+    categoriaSeleccionada = '';
+    categoriaElemento = null;
+  }
+
+  function confirmarCategoria() {
+    document.getElementById('modalConfirmacion').classList.remove('visible');
+    // Scroll suave hacia los planes
+    document.querySelector('.planes-grid').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function elegirPlan(plan, precio) {
+    var nombre = document.getElementById('nombreProducto').value || 'mi producto';
+    var cat = categoriaSeleccionada || 'Sin categoría';
+    var msg = encodeURIComponent(
+      '¡Hola! Subí el producto: *' + nombre + '*\n' +
+      '📦 Categoría: ' + cat + '\n' +
+      '🎯 Plan elegido: ' + plan + ' (' + precio + ')'
+    );
+    window.open('https://wa.me/573043381708?text=' + msg, '_blank');
+  }
+</script>
+<style>
+  :root {
+    --azul: #002366; --azul2: #1a3a7a;
+    --naranja: #FF6B00; --naranja2: #FF8C00;
+    --fondo: #F4F6FB; --blanco: #fff; --gris: #6b7280;
+    --sombra: 0 4px 20px rgba(0,35,102,.10);
+    --sombra2: 0 8px 30px rgba(0,35,102,.18);
+    --radio: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Poppins', sans-serif; background: var(--fondo); color: #1a1a2e; }
+
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--blanco); box-shadow: 0 2px 16px rgba(0,35,102,.08);
+    padding: 12px 30px; display: flex; flex-wrap: wrap;
+    justify-content: space-between; align-items: center; gap: 10px;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+  .logo img { height: 36px; width: 36px; border-radius: 50%; object-fit: cover; }
+  .logo-texto { font-family: 'Playfair Display', serif; font-size: 24px; color: var(--azul); font-weight: 700; }
+  .logo-texto span { color: var(--naranja); }
+
+  .tabs-nav { display: flex; gap: 4px; order: 3; width: 100%; justify-content: center; }
+  .tab-btn {
+    background: transparent; border: 2px solid transparent; border-radius: 30px;
+    padding: 8px 16px; font-family: 'Poppins', sans-serif; font-size: 13px;
+    font-weight: 600; color: var(--gris); cursor: pointer; transition: all .2s; white-space: nowrap;
+  }
+  .tab-btn:hover { color: var(--azul); background: var(--fondo); }
+  .tab-btn.activa { color: var(--azul); border-color: var(--azul); background: var(--fondo); }
+  .tab-btn.naranja.activa { color: var(--naranja); border-color: var(--naranja); background: #fff5ee; }
+
+  .header-right { display: flex; align-items: center; gap: 10px; flex: 1; justify-content: flex-end; }
+  .buscador { display: flex; align-items: center; gap: 8px; background: var(--fondo); border-radius: 30px; padding: 8px 18px; border: 2px solid transparent; transition: border .2s; flex: 1; max-width: 420px; }
+  .buscador:focus-within { border-color: var(--azul); }
+  .buscador input { border: none; background: transparent; outline: none; font-family: 'Poppins', sans-serif; font-size: 14px; width: 100%; }
+  .carrito-badge { display: none; }
+
+  .vista { display: none; }
+  .vista.visible { display: block; }
+  .guardados-vacio { text-align: center; padding: 80px 20px; color: var(--gris); }
+  .guardados-vacio .icono { font-size: 60px; margin-bottom: 16px; }
+  .guardados-vacio h3 { font-size: 22px; color: var(--azul); margin-bottom: 8px; }
+
+  .banner {
+    background: linear-gradient(135deg, #001a4d 0%, #002366 50%, #003399 100%);
+    padding: 60px 50px; display: flex; align-items: center;
+    justify-content: space-between; gap: 40px; overflow: hidden; position: relative;
+  }
+  .banner::before { content: ''; position: absolute; top: -80px; right: -80px; width: 400px; height: 400px; background: radial-gradient(circle, rgba(255,107,0,.15) 0%, transparent 70%); border-radius: 50%; }
+  .banner-texto { max-width: 50%; position: relative; z-index: 1; }
+  .banner-tag { display: inline-block; background: rgba(255,107,0,.2); color: var(--naranja2); border: 1px solid rgba(255,107,0,.4); border-radius: 30px; padding: 5px 16px; font-size: 13px; font-weight: 600; margin-bottom: 16px; }
+  .banner-texto h1 { font-family: 'Playfair Display', serif; font-size: 30px; color: white; line-height: 1.2; margin-bottom: 14px; }
+  .banner-texto h1 span { color: var(--naranja2); }
+  .banner-texto p { font-size: 16px; color: rgba(255,255,255,.75); margin-bottom: 26px; line-height: 1.6; }
+  .banner-btns { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn-primary { background: var(--naranja); color: white; border: none; border-radius: 30px; padding: 12px 26px; font-family: 'Poppins', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; transition: all .2s; box-shadow: 0 4px 15px rgba(255,107,0,.4); }
+  .btn-primary:hover { transform: translateY(-2px); }
+  .btn-secondary { background: transparent; color: white; border: 2px solid rgba(255,255,255,.4); border-radius: 30px; padding: 12px 26px; font-family: 'Poppins', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: all .2s; }
+  .btn-secondary:hover { border-color: white; background: rgba(255,255,255,.08); }
+  .banner-stats { display: flex; gap: 24px; margin-top: 28px; }
+  .stat-num { font-size: 22px; font-weight: 800; color: white; }
+  .stat-label { font-size: 12px; color: rgba(255,255,255,.6); font-weight: 500; }
+  .banner-img { width: 42%; position: relative; z-index: 1; }
+  .banner-img img { width: 100%; border-radius: 20px; object-fit: cover; box-shadow: 0 20px 60px rgba(0,0,0,.4); }
+
+  .categorias { padding: 45px 50px 25px; text-align: center; }
+  .categorias h2 { font-size: 26px; font-weight: 700; color: var(--azul); margin-bottom: 26px; }
+  .cats-grid { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .cat-item { background: var(--blanco); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; transition: all .25s; box-shadow: var(--sombra); min-width: 82px; border: 2px solid transparent; }
+  .cat-item:hover { transform: translateY(-4px); border-color: var(--naranja); }
+  .cat-icono { font-size: 26px; }
+  .cat-nombre { font-size: 11px; font-weight: 600; color: var(--azul); }
+
+  .productos { padding: 20px 50px 45px; }
+  .seccion-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
+  .seccion-header h2 { font-size: 24px; font-weight: 700; color: var(--azul); }
+  .ver-todos { color: var(--naranja); font-weight: 600; font-size: 14px; text-decoration: none; }
+  .grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 18px; }
+
+  .card { background: var(--blanco); border-radius: var(--radio); box-shadow: var(--sombra); overflow: hidden; transition: all .3s; }
+  .card:hover { transform: translateY(-5px); box-shadow: var(--sombra2); }
+  .card-img-wrap { position: relative; overflow: hidden; }
+  .card img { width: 100%; height: 185px; object-fit: cover; display: block; transition: transform .4s; }
+  .card:hover img { transform: scale(1.05); }
+  .btn-favorito { position: absolute; top: 10px; right: 10px; background: white; border: none; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,.15); transition: all .2s; z-index: 2; }
+  .btn-favorito:hover { transform: scale(1.15); }
+  .btn-favorito svg { transition: all .2s; }
+  .btn-favorito.activo svg { fill: #ff3b5c; stroke: #ff3b5c; }
+  .card-badge { position: absolute; top: 10px; left: 10px; background: var(--naranja); color: white; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; z-index: 2; }
+  .card-badge.nuevo { background: #10b981; }
+  .card-body { padding: 14px; }
+  .card-nombre { font-size: 14px; font-weight: 600; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-estrellas { display: flex; align-items: center; gap: 4px; margin-bottom: 8px; }
+  .estrellas { color: #f59e0b; font-size: 12px; }
+  .num-resenas { font-size: 11px; color: var(--gris); }
+  .card-precio { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .precio-actual { font-size: 18px; font-weight: 800; color: var(--azul); }
+  .precio-antes { font-size: 12px; color: var(--gris); text-decoration: line-through; }
+  .btn-carrito-card { width: 100%; background: var(--naranja); color: white; border: none; border-radius: 10px; padding: 11px; font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all .2s; }
+  .btn-carrito-card:hover { background: var(--naranja2); transform: translateY(-1px); }
+
+  .beneficios { background: var(--azul); padding: 45px 50px; }
+  .beneficios h2 { text-align: center; font-size: 24px; color: white; margin-bottom: 28px; font-weight: 700; }
+  .beneficios-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+  .beneficio { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); border-radius: var(--radio); padding: 22px 16px; text-align: center; transition: all .25s; }
+  .beneficio:hover { background: rgba(255,255,255,.14); transform: translateY(-3px); }
+  .beneficio-icono { font-size: 32px; margin-bottom: 10px; }
+  .beneficio h3 { color: white; font-size: 14px; font-weight: 700; margin-bottom: 5px; }
+  .beneficio p { color: rgba(255,255,255,.65); font-size: 12px; line-height: 1.5; }
+
+  .vende-section { padding: 55px 50px; background: var(--fondo); text-align: center; }
+  .vende-section h2 { font-size: 28px; color: var(--azul); font-weight: 800; margin-bottom: 8px; }
+  .vende-section .subtitulo { color: var(--gris); font-size: 15px; margin-bottom: 28px; }
+  .vende-form { background: var(--blanco); border-radius: 20px; box-shadow: 0 8px 40px rgba(0,35,102,.10); padding: 30px; max-width: 700px; margin: 0 auto; text-align: left; }
+  .vende-form label { display: block; font-weight: 600; margin: 14px 0 5px; color: var(--azul); font-size: 14px; }
+  .vende-form input, .vende-form textarea { width: 100%; padding: 10px 13px; border: 2px solid #e5e7eb; border-radius: 10px; font-family: 'Poppins', sans-serif; font-size: 14px; box-sizing: border-box; outline: none; transition: border .2s; }
+  .vende-form input:focus, .vende-form textarea:focus { border-color: var(--azul); }
+  .vende-form textarea { resize: vertical; min-height: 80px; }
+  .preview-img { width: 100%; max-height: 240px; object-fit: contain; border-radius: 12px; margin-top: 10px; display: none; }
+  .nombre-producto { text-align: center; font-size: 20px; font-weight: 800; color: var(--azul); margin: 10px 0 16px; }
+  .planes-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-top: 16px; }
+  .plan-card { border: 2px solid #e5e7eb; border-radius: 14px; padding: 16px 12px; text-align: center; cursor: pointer; transition: all .25s; }
+  .plan-card:hover { border-color: var(--naranja); box-shadow: 0 6px 20px rgba(255,107,0,.15); transform: translateY(-3px); }
+  .plan-card h3 { font-size: 13px; color: var(--azul); margin: 0 0 8px; font-weight: 700; }
+  .plan-card .precio { font-size: 22px; font-weight: 800; color: var(--naranja); margin: 5px 0; }
+  .plan-card p { font-size: 12px; color: var(--gris); margin: 2px 0; }
+  .btn-elegir { display: inline-flex; align-items: center; gap: 5px; margin-top: 10px; padding: 9px 16px; background: #25D366; color: white; border: none; border-radius: 30px; cursor: pointer; font-family: 'Poppins', sans-serif; font-size: 12px; font-weight: 700; text-decoration: none; transition: all .2s; }
+  .btn-elegir:hover { background: #1da851; }
+  .btn-elegir.naranja { background: var(--naranja); }
+  .btn-elegir.naranja:hover { background: var(--naranja2); }
+  .aviso-devolucion { text-align: center; margin-top: 20px; font-size: 13px; color: #555; background: #fff7ed; border-left: 4px solid var(--naranja); border-radius: 8px; padding: 10px 14px; }
+  .whatsapp-flotante { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 24px; font-size: 15px; color: #25D366; font-weight: 700; }
+  .whatsapp-flotante a { color: #25D366; text-decoration: none; display: flex; align-items: center; gap: 7px; }
+  .campo-fila { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .campo-etiqueta { min-width: 88px; font-weight: 600; color: var(--azul); font-size: 13px; }
+  .campo-input { flex: 1; padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-family: 'Poppins', sans-serif; font-size: 13px; outline: none; transition: border .2s; }
+  .campo-input:focus { border-color: var(--azul); }
+  .btn-quitar { background: #ff4d4d; color: white; border: none; border-radius: 50%; width: 26px; height: 26px; cursor: pointer; font-size: 12px; flex-shrink: 0; }
+
+  footer { background: #001233; color: white; padding: 45px 50px 24px; }
+  .footer-content { max-width: 540px; margin: auto; display: flex; flex-direction: column; align-items: center; gap: 7px; text-align: center; }
+  .footer-logo { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+  .footer-logo span { color: var(--naranja); }
+  footer p { font-size: 14px; line-height: 1.6; color: rgba(255,255,255,.75); }
+  footer a { color: rgba(255,255,255,.75); text-decoration: none; }
+  footer a:hover { color: var(--naranja); }
+  .footer-divider { width: 50px; height: 3px; background: var(--naranja); border-radius: 3px; margin: 12px auto; }
+  footer h3 { color: white; font-size: 15px; margin: 8px 0 3px; }
+  footer ul { list-style: none; }
+  footer ul li { font-size: 14px; line-height: 1.8; color: rgba(255,255,255,.75); }
+  .footer-bottom { text-align: center; margin-top: 26px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.1); font-size: 12px; color: rgba(255,255,255,.4); }
+
+  @media (max-width: 900px) {
+    /* HEADER MÓVIL: 3 filas limpias */
+    header {
+      padding: 10px 14px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      grid-template-rows: auto auto;
+      gap: 10px;
+      align-items: center;
+    }
+    .logo { grid-column: 1; grid-row: 1; }
+    .header-right {
+      grid-column: 2;
+      grid-row: 1;
+      justify-content: flex-end;
+    }
+    .buscador { max-width: 100%; }
+    .tabs-nav {
+      grid-column: 1 / 3;
+      grid-row: 2;
+      width: 100%;
+      justify-content: stretch;
+      gap: 6px;
+    }
+    .tab-btn {
+      flex: 1;
+      text-align: center;
+      font-size: 13px;
+      padding: 10px 8px;
+      border-radius: 12px;
+      justify-content: center;
+    }
+
+    .banner { flex-direction: column; padding: 35px 18px; text-align: center; }
+    .banner-texto { max-width: 100%; }
+    .banner-img { width: 100%; }
+    .banner-btns { justify-content: center; }
+    .banner-stats { justify-content: center; }
+    .categorias, .productos, .vende-section { padding: 26px 14px; }
+    .beneficios { padding: 32px 14px; }
+    .grid { grid-template-columns: repeat(2,1fr); gap: 12px; }
+    .beneficios-grid { grid-template-columns: repeat(2,1fr); }
+    .planes-grid { grid-template-columns: 1fr; }
+    footer { padding: 32px 14px 18px; }
+  }
+
+  /* CATEGORÍAS DEL PRODUCTO */
+  .cats-producto { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-top: 10px; }
+  .cat-prod-item {
+    border: 2px solid #e5e7eb; border-radius: 12px; padding: 14px 8px;
+    text-align: center; cursor: pointer; transition: all .2s; background: var(--blanco);
+  }
+  .cat-prod-item:hover { border-color: var(--naranja); transform: translateY(-2px); }
+  .cat-prod-item.seleccionada { border-color: var(--azul); background: #eef2ff; }
+  .cat-prod-icono { font-size: 24px; margin-bottom: 5px; }
+  .cat-prod-nombre { font-size: 11px; font-weight: 600; color: var(--azul); }
+
+  /* MODAL CONFIRMACIÓN */
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.55); z-index: 999;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.visible { display: flex; }
+  .modal {
+    background: white; border-radius: 20px; padding: 32px 28px;
+    max-width: 340px; width: 90%; text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: popIn .2s ease;
+  }
+  @keyframes popIn { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal-icono { font-size: 48px; margin-bottom: 12px; }
+  .modal h3 { font-size: 18px; color: var(--azul); font-weight: 700; margin-bottom: 8px; }
+  .modal p { font-size: 14px; color: var(--gris); margin-bottom: 24px; line-height: 1.5; }
+  .modal-btns { display: flex; gap: 10px; justify-content: center; }
+  .btn-modal-si { background: var(--naranja); color: white; border: none; border-radius: 30px; padding: 11px 28px; font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all .2s; }
+  .btn-modal-si:hover { background: var(--naranja2); transform: translateY(-1px); }
+  .btn-modal-no { background: #f1f4f9; color: var(--azul); border: none; border-radius: 30px; padding: 11px 28px; font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn-modal-no:hover { background: #e5e7eb; }
+  @media (max-width: 600px) { .cats-producto { grid-template-columns: repeat(3,1fr); } }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="#">
+    <img src="https://res.cloudinary.com/ds76fgy5m/image/upload/v1773377851/IMG-20260307-WA0003_aiq1sr.jpg" alt="Covanca">
+    <span class="logo-texto">Co<span>van</span>ca</span>
+  </a>
+  <div class="header-right">
+    <div class="buscador">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" placeholder="Buscar productos...">
+    </div>
+  </div>
+  <nav class="tabs-nav">
+    <button class="tab-btn activa" onclick="mostrarVista('inicio',this)">🏠 Inicio</button>
+    <button class="tab-btn" onclick="mostrarVista('guardados',this)">❤️ Guardados</button>
+    <button class="tab-btn naranja" onclick="mostrarVista('vender',this)">📦 Vender aquí</button>
+  </nav>
+</header>
+
+<div id="vista-inicio" class="vista visible">
+  <section class="banner">
+    <div class="banner-texto">
+      <div class="banner-tag">🔥 Marketplace #1 de tu región</div>
+      <h1>Encuentra los mejores <span>productos</span> al mejor precio</h1>
+      <p>Compra, vende y conecta con vendedores locales. Todo en un solo lugar.</p>
+      <div class="banner-btns">
+        <button class="btn-primary">Ver productos</button>
+        <button class="btn-secondary" onclick="mostrarVista('vender', document.querySelectorAll('.tab-btn')[2])">Vender aquí</button>
+      </div>
+      <div class="banner-stats">
+        <div class="stat"><div class="stat-num">500+</div><div class="stat-label">Productos</div></div>
+        <div class="stat"><div class="stat-num">200+</div><div class="stat-label">Vendedores</div></div>
+        <div class="stat"><div class="stat-num">98%</div><div class="stat-label">Satisfacción</div></div>
+      </div>
+    </div>
+    <div class="banner-img">
+      <img src="https://res.cloudinary.com/ds76fgy5m/image/upload/v1773377851/IMG-20260308-WA0000_g8esm3.jpg" alt="Banner">
+    </div>
+  </section>
+
+  <section class="categorias">
+    <h2>¿Qué estás buscando?</h2>
+    <div class="cats-grid">
+      <div class="cat-item"><span class="cat-icono">👗</span><span class="cat-nombre">Ropa</span></div>
+      <div class="cat-item"><span class="cat-icono">💄</span><span class="cat-nombre">Belleza</span></div>
+      <div class="cat-item"><span class="cat-icono">💅</span><span class="cat-nombre">Uñas</span></div>
+      <div class="cat-item"><span class="cat-icono">✂️</span><span class="cat-nombre">Peluquería</span></div>
+      <div class="cat-item"><span class="cat-icono">💪</span><span class="cat-nombre">Gym</span></div>
+      <div class="cat-item"><span class="cat-icono">🔧</span><span class="cat-nombre">Taller</span></div>
+      <div class="cat-item"><span class="cat-icono">📚</span><span class="cat-nombre">Clases</span></div>
+      <div class="cat-item"><span class="cat-icono">📦</span><span class="cat-nombre">Más</span></div>
+    </div>
+  </section>
+
+  <section class="productos">
+    <div class="seccion-header">
+      <h2>🏆 Productos Destacados</h2>
+      <a href="#" class="ver-todos">Ver todos →</a>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <div class="card-img-wrap">
+          <span class="card-badge">-20%</span>
+          <img src="https://res.cloudinary.com/ds76fgy5m/image/upload/v1773377851/IMG-20260308-WA0001_u5xvnz.jpg" alt="Toy">
+          <button class="btn-favorito" onclick="toggleFavorito(this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff3b5c" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+        </div>
+        <div class="card-body">
+          <div class="card-nombre">Toy con baterías</div>
+          <div class="card-estrellas"><span class="estrellas">★★★★★</span><span class="num-resenas">(12)</span></div>
+          <div class="card-precio"><span class="precio-actual">$39.000</span><span class="precio-antes">$48.000</span></div>
+          <button class="btn-carrito-card" onclick="window.open('https://wa.me/573043381708?text=' + encodeURIComponent('Hola, me interesa comprar: *Toy con baterías* por $39.000'), '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-img-wrap">
+          <span class="card-badge nuevo">Nuevo</span>
+          <img src="https://res.cloudinary.com/ds76fgy5m/image/upload/v1773377851/IMG-20260308-WA0003_wp9a90.jpg" alt="Hoodie">
+          <button class="btn-favorito" onclick="toggleFavorito(this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff3b5c" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+        </div>
+        <div class="card-body">
+          <div class="card-nombre">Camiseta Hoodie</div>
+          <div class="card-estrellas"><span class="estrellas">★★★★☆</span><span class="num-resenas">(8)</span></div>
+          <div class="card-precio"><span class="precio-actual">$79.000</span></div>
+          <button class="btn-carrito-card" onclick="window.open('https://wa.me/573043381708?text=' + encodeURIComponent('Hola, me interesa comprar: *Camiseta Hoodie* por $79.000'), '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-img-wrap">
+          <img src="https://res.cloudinary.com/ds76fgy5m/image/upload/v1773377851/IMG-20260308-WA0004_roi3i1.jpg" alt="Sneakers">
+          <button class="btn-favorito" onclick="toggleFavorito(this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff3b5c" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+        </div>
+        <div class="card-body">
+          <div class="card-nombre">Sneakers</div>
+          <div class="card-estrellas"><span class="estrellas">★★★★★</span><span class="num-resenas">(24)</span></div>
+          <div class="card-precio"><span class="precio-actual">$59.000</span></div>
+          <button class="btn-carrito-card" onclick="window.open('https://wa.me/573043381708?text=' + encodeURIComponent('Hola, me interesa comprar: *Sneakers* por $59.000'), '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-img-wrap">
+          <span class="card-badge">-20%</span>
+          <img src="https://res.cloudinary.com/ds76fgy5m/image/upload/v1773377852/IMG-20260308-WA0002_cnfjrw.jpg" alt="Producto">
+          <button class="btn-favorito" onclick="toggleFavorito(this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff3b5c" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+        </div>
+        <div class="card-body">
+          <div class="card-nombre">Producto especial</div>
+          <div class="card-estrellas"><span class="estrellas">★★★★☆</span><span class="num-resenas">(5)</span></div>
+          <div class="card-precio"><span class="precio-actual">$79.900</span><span class="precio-antes">$99.000</span></div>
+          <button class="btn-carrito-card" onclick="window.open('https://wa.me/573043381708?text=' + encodeURIComponent('Hola, me interesa comprar: *Producto especial* por $79.900'), '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="beneficios">
+    <h2>¿Por qué elegir Covanca?</h2>
+    <div class="beneficios-grid">
+      <div class="beneficio"><div class="beneficio-icono">🚚</div><h3>Envío rápido</h3><p>Entregas rápidas y seguras</p></div>
+      <div class="beneficio"><div class="beneficio-icono">🔒</div><h3>Pago seguro</h3><p>Tus datos siempre protegidos</p></div>
+      <div class="beneficio"><div class="beneficio-icono">🔄</div><h3>Devoluciones</h3><p>30 días sin preguntas</p></div>
+      <div class="beneficio"><div class="beneficio-icono">⭐</div><h3>Clientes felices</h3><p>98% de satisfacción</p></div>
+    </div>
+  </section>
+</div>
+
+<div id="vista-guardados" class="vista">
+  <div style="padding:40px 50px;">
+    <h2 style="font-size:24px;color:#002366;margin-bottom:24px;">❤️ Productos Guardados</h2>
+    <div id="grid-guardados" class="grid"></div>
+    <div id="guardados-vacio" class="guardados-vacio">
+      <div class="icono">🤍</div>
+      <h3>Aún no tienes guardados</h3>
+      <p>Presiona el ❤️ en cualquier producto para guardarlo aquí</p>
+    </div>
+  </div>
+</div>
+
+<div id="vista-vender" class="vista">
+  <section class="vende-section">
+    <h2>📦 Vende tu producto con Covanca</h2>
+    <p class="subtitulo">Sube tu producto, elige un plan y lo movemos por ti.</p>
+    <div class="vende-form">
+      <label>📸 Foto del producto</label>
+      <input type="file" accept="image/*" onchange="mostrarImagen(event)">
+      <img id="preview" class="preview-img" alt="Vista previa">
+      <label>🏷️ Nombre del producto</label>
+      <input type="text" id="nombreProducto" placeholder="Ej: Zapatos Nike talla 42" oninput="actualizarNombre()">
+      <div class="nombre-producto" id="nombreMostrado"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;margin-bottom:7px;">
+        <label style="margin:0;">📋 Características</label>
+        <span style="font-size:11px;color:#888;">Quita lo que no aplica</span>
+      </div>
+      <div id="camposDinamicos">
+        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Marca</span><input type="text" class="campo-input" placeholder="Ej: Nike..."><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
+        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Modelo</span><input type="text" class="campo-input" placeholder="Ej: Air Max"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
+        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Color</span><input type="text" class="campo-input" placeholder="Ej: Blanco"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
+        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Talla</span><input type="text" class="campo-input" placeholder="Ej: M, 42"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
+        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Estado</span><input type="text" class="campo-input" placeholder="Nuevo / Usado"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
+        <input type="text" id="nuevoNombre" placeholder="Nombre del campo personalizado" style="flex:1;padding:9px 12px;border:2px solid #e5e7eb;border-radius:10px;font-family:'Poppins',sans-serif;font-size:13px;outline:none;">
+        <button onclick="agregarCampo()" style="padding:9px 14px;background:#002366;color:white;border:none;border-radius:10px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:13px;font-weight:600;">➕ Agregar</button>
+      </div>
+      <label style="margin-top:20px;">🧨‼️Escoge la categoría de tu producto‼️🧨</label>
+      <div class="cats-producto">
+        <div class="cat-prod-item" onclick="seleccionarCategoria(this, 'Ropa')"><div class="cat-prod-icono">👗</div><div class="cat-prod-nombre">Ropa</div></div>
+        <div class="cat-prod-item" onclick="seleccionarCategoria(this, 'Maquillaje')"><div class="cat-prod-icono">💄</div><div class="cat-prod-nombre">Maquillaje</div></div>
+        <div class="cat-prod-item" onclick="seleccionarCategoria(this, 'Uñas')"><div class="cat-prod-icono">💅</div><div class="cat-prod-nombre">Uñas</div></div>
+        <div class="cat-prod-item" onclick="seleccionarCategoria(this, 'Peluquería')"><div class="cat-prod-icono">✂️</div><div class="cat-prod-nombre">Peluquería</div></div>
+        <div class="cat-prod-item" onclick="seleccionarCategoria(this, 'Gym')"><div class="cat-prod-icono">💪</div><div class="cat-prod-nombre">Gym</div></div>
+        <div class="cat-prod-item" onclick="seleccionarCategoria(this, 'Taller')"><div class="cat-prod-icono">🔧</div><div class="cat-prod-nombre">Taller</div></div>
+        <div class="cat-prod-item" onclick="seleccionarCategoria(this, 'Clases')"><div class="cat-prod-icono">📚</div><div class="cat-prod-nombre">Clases</div></div>
+        <div class="cat-prod-item" onclick="seleccionarCategoria(this, 'Tecnología')"><div class="cat-prod-icono">📱</div><div class="cat-prod-nombre">Tecnología</div></div>
+        <div class="cat-prod-item" onclick="seleccionarCategoria(this, 'Hogar')"><div class="cat-prod-icono">🏠</div><div class="cat-prod-nombre">Hogar</div></div>
+        <div class="cat-prod-item" onclick="seleccionarCategoria(this, 'Juguetes')"><div class="cat-prod-icono">🧸</div><div class="cat-prod-nombre">Juguetes</div></div>
+        <div class="cat-prod-item" onclick="seleccionarCategoria(this, 'Calzado')"><div class="cat-prod-icono">👟</div><div class="cat-prod-nombre">Calzado</div></div>
+        <div class="cat-prod-item" onclick="seleccionarCategoria(this, 'Otro')"><div class="cat-prod-icono">📦</div><div class="cat-prod-nombre">Otro</div></div>
+      </div>
+
+      <label style="margin-top:20px;">🎯 Elige tu plan</label>
+      <div class="planes-grid">
+        <div class="plan-card">
+          <h3>⚡ Vender rápido</h3>
+          <div class="precio">$13.200</div>
+          <p>⏱ 48 horas</p><p>💬 Chat incluido</p><p>🚚 Envío gratis</p><p>📦 Se recoge</p>
+          <a class="btn-elegir naranja" href="#" onclick="elegirPlan('48h','$13.200')">📲 Elegir plan</a>
+        </div>
+        <div class="plan-card">
+          <h3>🕐 Precio medio</h3>
+          <div class="precio">$9.400</div>
+          <p>⏱ 64 horas</p><p>💬 Chat incluido</p><p>🚚 Envío: $300</p><p>📦 Se recoge</p>
+          <a class="btn-elegir" href="#" onclick="elegirPlan('64h','$9.400')">📲 Elegir plan</a>
+        </div>
+        <div class="plan-card">
+          <h3>🐢 Sin prisa</h3>
+          <div class="precio">$0.000</div>
+          <p>⏱ Sin plazo</p><p>💬 Chat incluido</p><p>🚚 Envío: $700</p><p>📦 Se recoge</p>
+          <a class="btn-elegir" href="#" onclick="elegirPlan('Gratis','$0.000')">📲 Elegir plan</a>
+        </div>
+      </div>
+      <div class="aviso-devolucion">✅ <strong>Garantía total:</strong> Devolución del 100% si pasa el plazo.</div>
+      <div class="whatsapp-flotante">
+        <a href="https://wa.me/573043381708" target="_blank">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#25D366" viewBox="0 0 24 24"><path d="M20.52 3.48A12 12 0 1 0 3.48 20.52 12 12 0 0 0 20.52 3.48zm-8.52 16a9.93 9.93 0 0 1-5.1-1.4l-.36-.22-3.74.98 1-3.64-.24-.38A10 10 0 1 1 12 19.5zm5.5-7.4c-.3-.15-1.77-.87-2.04-.97s-.47-.15-.67.15-.77.97-.94 1.17-.35.22-.65.07a8.15 8.15 0 0 1-2.4-1.48 9 9 0 0 1-1.66-2.07c-.17-.3 0-.46.13-.6s.3-.35.44-.53a2 2 0 0 0 .3-.5.55.55 0 0 0-.03-.52c-.07-.15-.67-1.62-.92-2.22s-.49-.5-.67-.51H8.1a1.06 1.06 0 0 0-.77.36A3.24 3.24 0 0 0 6.32 9a5.63 5.63 0 0 0 1.18 3c.15.2 2.1 3.2 5.08 4.49a17.1 17.1 0 0 0 1.7.63 4.1 4.1 0 0 0 1.87.12c.57-.09 1.77-.72 2.02-1.42s.25-1.3.17-1.42-.25-.2-.55-.34z"/></svg>
+          ¿Preguntas o acuerdos?
+        </a>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- MODAL CONFIRMACIÓN -->
+<div class="modal-overlay" id="modalConfirmacion">
+  <div class="modal">
+    <div class="modal-icono">🗂️</div>
+    <h3>¿Confirmar categoría?</h3>
+    <p id="modal-texto">¿Estás seguro de escoger la categoría <strong id="modal-cat"></strong>?</p>
+    <div class="modal-btns">
+      <button class="btn-modal-no" onclick="cerrarModal()">No</button>
+      <button class="btn-modal-si" onclick="confirmarCategoria()">Sí, confirmar</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-content">
+    <div class="footer-logo">Co<span>van</span>ca</div>
+    <div class="footer-divider"></div>
+    <p>WhatsApp: <a href="https://wa.me/573043381708">3043381708</a></p>
+    <p>Email: <a href="mailto:covanca@gmail.com">covanca@gmail.com</a></p>
+    <h3>Servicios disponibles</h3>
+    <ul>
+      <li>💄 Maquillaje · 💅 Uñas · ✂️ Peluquería</li>
+      <li>💪 Gym · 🔧 Taller · 📚 Profesores</li>
+    </ul>
+  </div>
+  <div class="footer-bottom">© 2026 Covanca — Todos los derechos reservados</div>
+</footer>
+
+</body>
+</html>
