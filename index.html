@@ -160,14 +160,39 @@
       empresaEl.style.display = 'none';
     }
 
-    // Precio
+    // Precio con cálculo automático de descuento
     document.getElementById('detalle-precio').textContent = p.precio || '';
     var badgeEl = document.getElementById('detalle-desc-badge');
     var precioAntesEl = document.getElementById('detalle-precio-antes');
-    if (descuento.trim() !== '') { badgeEl.textContent = descuento; badgeEl.style.display = 'inline-block'; }
-    else { badgeEl.style.display = 'none'; }
-    if (p.precioAntes && p.precioAntes.trim() !== '') { precioAntesEl.textContent = p.precioAntes; precioAntesEl.style.display = 'inline-block'; }
-    else { precioAntesEl.style.display = 'none'; }
+    var precioRealEl = document.getElementById('detalle-precio');
+
+    if (descuento.trim() !== '') {
+      // Intentar calcular precio real si el descuento es un porcentaje (ej: "8%", "20% OFF")
+      var porcMatch = descuento.match(/(\d+(\.\d+)?)\s*%/);
+      var precioNumero = parseFloat((p.precio || '').replace(/[^0-9,]/g, '').replace(',', '.'));
+      if (porcMatch && !isNaN(precioNumero)) {
+        var porc = parseFloat(porcMatch[1]);
+        var precioReal = Math.round(precioNumero * (1 - porc / 100));
+        var precioRealFormateado = '$' + precioReal.toLocaleString('es-CO').replace(/,/g, '.');
+        precioAntesEl.textContent = p.precio;
+        precioAntesEl.style.display = 'inline-block';
+        precioRealEl.textContent = precioRealFormateado;
+      } else {
+        // Si no es porcentaje calculable, solo mostrar el badge
+        precioAntesEl.style.display = 'none';
+        precioRealEl.textContent = p.precio || '';
+      }
+      badgeEl.textContent = descuento;
+      badgeEl.style.display = 'inline-block';
+    } else {
+      badgeEl.style.display = 'none';
+      precioAntesEl.style.display = 'none';
+      precioRealEl.textContent = p.precio || '';
+    }
+    if (p.precioAntes && p.precioAntes.trim() !== '' && descuento.trim() === '') {
+      precioAntesEl.textContent = p.precioAntes;
+      precioAntesEl.style.display = 'inline-block';
+    }
 
     // Características completas (excluye los campos especiales)
     var cont = document.getElementById('detalle-caract');
@@ -837,15 +862,15 @@
         <span style="font-size:11px;color:#888;">Quita lo que no aplica</span>
       </div>
       <div id="camposDinamicos">
-        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Marca</span><input type="text" class="campo-input" placeholder="Ej: Nike... (Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
-        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Modelo</span><input type="text" class="campo-input" placeholder="Ej: Air Max (Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
-        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Color</span><input type="text" class="campo-input" placeholder="Ej: Blanco (Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
-        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Talla</span><input type="text" class="campo-input" placeholder="Ej: M, 42 (Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
-        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Estado</span><input type="text" class="campo-input" placeholder="Nuevo / Usado (Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
-        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Descuento</span><input type="text" class="campo-input" placeholder="Ej: 20% OFF (Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
-        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Promoción</span><input type="text" class="campo-input" placeholder="Ej: 2x1 los martes (Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
-        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Unidades disponibles</span><input type="text" class="campo-input" placeholder="Ej: 5 unidades (Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
-        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Nombre de la empresa</span><input type="text" class="campo-input" placeholder="Ej: Mi Tienda (Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
+        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Marca</span><input type="text" class="campo-input" placeholder="(Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
+        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Modelo</span><input type="text" class="campo-input" placeholder="(Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
+        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Color</span><input type="text" class="campo-input" placeholder="(Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
+        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Talla</span><input type="text" class="campo-input" placeholder="(Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
+        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Estado</span><input type="text" class="campo-input" placeholder="(Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
+        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Descuento</span><input type="text" class="campo-input" placeholder="(Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
+        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Promoción</span><input type="text" class="campo-input" placeholder="(Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
+        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Unidades disponibles</span><input type="text" class="campo-input" placeholder="(Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
+        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Nombre de la empresa</span><input type="text" class="campo-input" placeholder="(Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
       </div>
       <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
         <input type="text" id="nuevoNombre" placeholder="Nombre del campo personalizado" style="flex:1;padding:9px 12px;border:2px solid #e5e7eb;border-radius:10px;font-family:'Poppins',sans-serif;font-size:13px;outline:none;">
