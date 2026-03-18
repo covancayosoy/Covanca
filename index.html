@@ -131,6 +131,149 @@
     );
     window.open('https://wa.me/573043381708?text=' + msg, '_blank');
   }
+
+  /* ===== MODAL DETALLE PRODUCTO ===== */
+  var detalleImagenes = [];
+  var detalleImgActual = 0;
+
+  function abrirDetalle(p) {
+    detalleImagenes = [];
+    if (p.imagenes && p.imagenes.length > 0) { detalleImagenes = p.imagenes; }
+    else if (p.imagen && p.imagen !== '') { detalleImagenes = [p.imagen]; }
+    detalleImgActual = 0;
+    renderGaleriaDetalle();
+
+    document.getElementById('detalle-nombre').textContent = p.nombre || '';
+
+    var caract = p.caracteristicas || {};
+    var empresa = caract['Nombre de la empresa'] || '';
+    var descuento = caract['Descuento'] || p.descuento || '';
+    var promocion = caract['Promoción'] || '';
+    var unidades = caract['Unidades disponibles'] || '';
+
+    // Empresa: solo si fue puesta
+    var empresaEl = document.getElementById('detalle-empresa');
+    if (empresa.trim() !== '') {
+      empresaEl.style.display = 'flex';
+      document.getElementById('detalle-empresa-txt').textContent = empresa;
+    } else {
+      empresaEl.style.display = 'none';
+    }
+
+    // Precio
+    document.getElementById('detalle-precio').textContent = p.precio || '';
+    var badgeEl = document.getElementById('detalle-desc-badge');
+    var precioAntesEl = document.getElementById('detalle-precio-antes');
+    if (descuento.trim() !== '') { badgeEl.textContent = descuento; badgeEl.style.display = 'inline-block'; }
+    else { badgeEl.style.display = 'none'; }
+    if (p.precioAntes && p.precioAntes.trim() !== '') { precioAntesEl.textContent = p.precioAntes; precioAntesEl.style.display = 'inline-block'; }
+    else { precioAntesEl.style.display = 'none'; }
+
+    // Características completas (excluye los campos especiales)
+    var cont = document.getElementById('detalle-caract');
+    cont.innerHTML = '';
+    var excluir = ['Nombre de la empresa','Descuento','Promoción','Unidades disponibles'];
+    var tieneCaract = false;
+    Object.keys(caract).forEach(function(k) {
+      if (excluir.indexOf(k) >= 0) return;
+      tieneCaract = true;
+      var row = document.createElement('div');
+      row.className = 'detalle-caract-row';
+      row.innerHTML = '<span class="detalle-caract-k">' + k + '</span><span class="detalle-caract-v">' + caract[k] + '</span>';
+      cont.appendChild(row);
+    });
+    if (promocion.trim() !== '') {
+      var rowP = document.createElement('div');
+      rowP.className = 'detalle-promo';
+      rowP.innerHTML = '🎁 Promoción: <strong>' + promocion + '</strong>';
+      cont.appendChild(rowP); tieneCaract = true;
+    }
+    if (unidades.trim() !== '') {
+      var rowU = document.createElement('div');
+      rowU.className = 'detalle-unidades';
+      rowU.innerHTML = '📦 Unidades disponibles: <strong>' + unidades + '</strong>';
+      cont.appendChild(rowU); tieneCaract = true;
+    }
+    document.getElementById('detalle-caract-titulo').style.display = tieneCaract ? 'block' : 'none';
+
+    // WhatsApp
+    var waMsg = encodeURIComponent('Hola, me interesa: *' + (p.nombre||'') + '* por ' + (p.precio||''));
+    document.getElementById('detalle-wa-btn').href = 'https://wa.me/573043381708?text=' + waMsg;
+
+    // Categoría y relacionados
+    var catMap = {'Ropa':'👗','Maquillaje':'💄','Uñas':'💅','Peluquería':'✂️','Gym':'💪','Taller':'🔧','Clases':'📚','Tecnología':'📱','Hogar':'🏠','Juguetes':'🧸','Calzado':'👟','Otro':'📦'};
+    var emoji = catMap[p.categoria] || '📦';
+    document.getElementById('detalle-cat-label').innerHTML = emoji + ' ' + (p.categoria || 'Productos');
+    renderRelacionados(p.categoria, p.nombre);
+
+    document.getElementById('modal-detalle').classList.add('visible');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function cerrarDetalle() {
+    document.getElementById('modal-detalle').classList.remove('visible');
+    document.body.style.overflow = '';
+  }
+
+  function renderGaleriaDetalle() {
+    var wrap = document.getElementById('detalle-galeria');
+    if (!wrap) return;
+    var prev = document.getElementById('detalle-btn-prev');
+    var next = document.getElementById('detalle-btn-next');
+    if (detalleImagenes.length === 0) {
+      wrap.innerHTML = '<div style="height:280px;background:#f1f4f9;display:flex;align-items:center;justify-content:center;font-size:60px;">📦</div>';
+      document.getElementById('detalle-contador').textContent = '';
+      if (prev) prev.style.display = 'none';
+      if (next) next.style.display = 'none';
+      return;
+    }
+    wrap.innerHTML = '<img src="' + detalleImagenes[detalleImgActual] + '" alt="producto" style="width:100%;height:300px;object-fit:contain;display:block;">';
+    var total = detalleImagenes.length;
+    document.getElementById('detalle-contador').textContent = (detalleImgActual + 1) + ' / ' + total;
+    if (prev) prev.style.display = total > 1 ? 'flex' : 'none';
+    if (next) next.style.display = total > 1 ? 'flex' : 'none';
+  }
+
+  function cambiarImg(dir) {
+    if (detalleImagenes.length === 0) return;
+    detalleImgActual = (detalleImgActual + dir + detalleImagenes.length) % detalleImagenes.length;
+    renderGaleriaDetalle();
+  }
+
+  function renderRelacionados(categoria, nombreActual) {
+    var grid = document.getElementById('detalle-rel-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    var count = 0;
+    if (window.productosCache) {
+      window.productosCache.forEach(function(p) {
+        if (count >= 6) return;
+        if (p.nombre === nombreActual) return;
+        if (categoria && p.categoria !== categoria) return;
+        var div = document.createElement('div');
+        div.className = 'rel-card';
+        var pCopy = p;
+        div.onclick = function() { abrirDetalle(pCopy); };
+        var tieneDesc = (p.caracteristicas && p.caracteristicas['Descuento']) || p.descuento || '';
+        div.innerHTML =
+          (p.imagen ? '<img src="' + p.imagen + '" alt="' + p.nombre + '">' : '<div class="rel-noimg">📦</div>') +
+          '<div class="rel-nombre">' + p.nombre + '</div>' +
+          (tieneDesc ? '<div class="rel-desc">' + tieneDesc + '</div>' : '') +
+          '<div class="rel-precio">' + p.precio + '</div>' +
+          '<div class="rel-envio">🚚 Envío gratis</div>';
+        grid.appendChild(div);
+        count++;
+      });
+    }
+    var seccion = document.getElementById('detalle-rel-seccion');
+    if (seccion) seccion.style.display = count > 0 ? 'block' : 'none';
+  }
+
+  function compartirProducto() {
+    var nombre = document.getElementById('detalle-nombre').textContent;
+    if (navigator.share) { navigator.share({ title: nombre, url: window.location.href }); }
+    else { if (navigator.clipboard) navigator.clipboard.writeText(window.location.href); alert('¡Enlace copiado!'); }
+  }
 </script>
 <style>
   :root {
@@ -213,7 +356,9 @@
   .ver-todos { color: var(--naranja); font-weight: 600; font-size: 14px; text-decoration: none; }
   .grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 18px; }
 
-  .card { background: var(--blanco); border-radius: var(--radio); box-shadow: var(--sombra); overflow: hidden; transition: all .3s; }
+  .card { background: var(--blanco); border-radius: var(--radio); box-shadow: var(--sombra); overflow: hidden; transition: all .3s; cursor: pointer; }
+  .card-caract-mini { margin: 4px 0 6px; }
+  .card-caract-mini span { font-size: 11px; color: #6b7280; display: block; line-height: 1.6; }
   .card:hover { transform: translateY(-5px); box-shadow: var(--sombra2); }
   .card-img-wrap { position: relative; overflow: hidden; }
   .card img { width: 100%; height: 185px; object-fit: cover; display: block; transition: transform .4s; }
@@ -365,6 +510,49 @@
   .btn-modal-no { background: #f1f4f9; color: var(--azul); border: none; border-radius: 30px; padding: 11px 28px; font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; }
   .btn-modal-no:hover { background: #e5e7eb; }
   @media (max-width: 600px) { .cats-producto { grid-template-columns: repeat(3,1fr); } }
+
+  /* ===== MODAL DETALLE PRODUCTO ===== */
+  .modal-detalle-overlay { display:none; position:fixed; inset:0; background:white; z-index:200; overflow-y:auto; }
+  .modal-detalle-overlay.visible { display:block; }
+  .detalle-header { position:sticky; top:0; z-index:10; background:white; box-shadow:0 2px 10px rgba(0,0,0,.08); display:flex; align-items:center; gap:10px; padding:10px 14px; }
+  .detalle-header .logo-texto { font-size:18px; }
+  .detalle-header .buscador { flex:1; max-width:none; }
+  .btn-detalle-cerrar { background:#f1f4f9; border:none; border-radius:50%; width:36px; height:36px; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .detalle-galeria-wrap { position:relative; background:#f8f9fb; min-height:300px; }
+  #detalle-contador { position:absolute; top:10px; left:12px; background:rgba(0,0,0,.45); color:white; border-radius:20px; padding:3px 10px; font-size:12px; z-index:5; }
+  .detalle-btn-heart { position:absolute; top:10px; right:12px; background:white; border:none; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.15); z-index:5; }
+  .detalle-btn-share { position:absolute; bottom:10px; right:12px; background:white; border:none; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.15); z-index:5; }
+  .detalle-btn-nav { position:absolute; top:50%; transform:translateY(-50%); background:rgba(255,255,255,.85); border:none; border-radius:50%; width:34px; height:34px; font-size:20px; cursor:pointer; z-index:5; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,.15); }
+  .detalle-btn-prev { left:8px; }
+  .detalle-btn-next { right:8px; }
+  .detalle-content { padding:16px 16px 40px; max-width:700px; margin:0 auto; }
+  .detalle-empresa { display:none; align-items:center; gap:8px; margin-bottom:12px; background:#f1f4f9; border-radius:10px; padding:8px 14px; font-size:13px; color:var(--azul); font-weight:600; }
+  .detalle-empresa-icon { font-size:18px; }
+  #detalle-nombre { font-size:20px; font-weight:700; color:#1a1a2e; margin-bottom:10px; line-height:1.35; }
+  .detalle-precio-wrap { display:flex; align-items:center; gap:10px; margin-bottom:18px; flex-wrap:wrap; }
+  .detalle-precio-antes { font-size:16px; color:#9ca3af; text-decoration:line-through; display:none; }
+  .detalle-precio-val { font-size:28px; font-weight:800; color:var(--azul); }
+  .detalle-desc-badge { background:#10b981; color:white; font-size:13px; font-weight:700; padding:4px 12px; border-radius:20px; display:none; }
+  .detalle-caract-titulo { font-size:14px; font-weight:700; color:var(--azul); margin-bottom:8px; margin-top:4px; }
+  .detalle-caract-row { display:flex; gap:8px; padding:7px 0; border-bottom:1px solid #f1f4f9; align-items:flex-start; }
+  .detalle-caract-k { color:#6b7280; min-width:110px; font-size:13px; }
+  .detalle-caract-v { font-weight:600; color:#1a1a2e; font-size:13px; }
+  .detalle-promo { background:#fff7ed; border-left:3px solid var(--naranja); padding:8px 12px; border-radius:6px; font-size:13px; margin:8px 0; }
+  .detalle-unidades { font-size:13px; color:#10b981; font-weight:600; margin:6px 0; }
+  .btn-comprar-detalle { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; background:var(--naranja); color:white; border:none; border-radius:12px; padding:15px; font-family:'Poppins',sans-serif; font-size:16px; font-weight:700; cursor:pointer; text-decoration:none; margin:20px 0 12px; transition:all .2s; }
+  .btn-comprar-detalle:hover { background:var(--naranja2); }
+  .detalle-garantias { background:#f8f9fb; border-radius:12px; padding:14px 16px; margin-bottom:24px; }
+  .detalle-garantias div { font-size:13px; color:#555; padding:5px 0; line-height:1.5; }
+  .detalle-cat-titulo { font-size:16px; font-weight:700; color:var(--azul); margin-bottom:14px; }
+  .rel-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+  .rel-card { background:white; border-radius:12px; box-shadow:0 2px 10px rgba(0,35,102,.08); overflow:hidden; cursor:pointer; transition:all .2s; }
+  .rel-card:hover { transform:translateY(-3px); box-shadow:var(--sombra2); }
+  .rel-card img { width:100%; height:120px; object-fit:cover; display:block; }
+  .rel-noimg { height:120px; background:#f1f4f9; display:flex; align-items:center; justify-content:center; font-size:30px; }
+  .rel-nombre { font-size:12px; font-weight:600; padding:6px 8px 2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#1a1a2e; }
+  .rel-desc { font-size:11px; color:#10b981; font-weight:700; padding:0 8px; }
+  .rel-precio { font-size:14px; font-weight:800; color:var(--azul); padding:0 8px; }
+  .rel-envio { font-size:11px; color:#10b981; padding:2px 8px 8px; }
 </style>
 
 <!-- Firebase + Cloudinary -->
@@ -450,36 +638,45 @@
   };
 
   // Escuchar productos en tiempo real
+  window.productosCache = [];
   var q = query(collection(db, 'productos'), orderBy('fecha', 'desc'));
   onSnapshot(q, function(snap) {
-    var grid = document.getElementById('grid-productos-dinamicos');
+    var grid = document.getElementById('grid-productos');
     if (!grid) return;
-    grid.innerHTML = '';
+    // Eliminar solo las tarjetas dinámicas previas
+    var dinamicas = grid.querySelectorAll('.card-dinamica');
+    dinamicas.forEach(function(el) { el.remove(); });
+    window.productosCache = [];
     snap.forEach(function(d) {
       var p = d.data();
+      window.productosCache.push(p);
+      var caract = p.caracteristicas || {};
+      var excluir = ['Nombre de la empresa','Descuento','Promoción','Unidades disponibles'];
+      var claves = Object.keys(caract).filter(function(k){ return excluir.indexOf(k) < 0; });
       var caractHtml = '';
-      if (p.caracteristicas) {
-        Object.keys(p.caracteristicas).forEach(function(k) {
-          caractHtml += '<span style="font-size:11px;color:#6b7280;display:block;">' + k + ': <strong>' + p.caracteristicas[k] + '</strong></span>';
-        });
+      for (var ci = 0; ci < Math.min(3, claves.length); ci++) {
+        var k = claves[ci];
+        caractHtml += '<span>' + k + ': <strong>' + caract[k] + '</strong></span>';
       }
       var waMsg = encodeURIComponent('Hola, me interesa: *' + p.nombre + '* por ' + p.precio);
       var div = document.createElement('div');
-      div.className = 'card';
+      div.className = 'card card-dinamica';
       div.innerHTML =
         '<div class="card-img-wrap">' +
         (p.imagen ? '<img src="' + p.imagen + '" alt="' + p.nombre + '">' : '<div style="height:185px;background:#f1f4f9;display:flex;align-items:center;justify-content:center;font-size:40px;">📦</div>') +
-        '<button class="btn-favorito" onclick="toggleFavorito(this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff3b5c" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>' +
+        '<button class="btn-favorito" onclick="event.stopPropagation();toggleFavorito(this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff3b5c" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>' +
         '<span class="card-badge nuevo">' + (p.categoria || 'Nuevo') + '</span>' +
         '</div>' +
         '<div class="card-body">' +
         '<div class="card-nombre">' + p.nombre + '</div>' +
         '<div class="card-estrellas"><span class="estrellas">★★★★★</span><span class="num-resenas">Nuevo</span></div>' +
-        (caractHtml ? '<div style="margin:4px 0 6px;">' + caractHtml + '</div>' : '') +
+        (caractHtml ? '<div class="card-caract-mini">' + caractHtml + '</div>' : '') +
         '<div class="card-precio"><span class="precio-actual">' + p.precio + '</span></div>' +
-        '<a href="https://wa.me/573043381708?text=' + waMsg + '" target="_blank" class="btn-carrito-card" style="display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;">' +
+        '<a href="https://wa.me/573043381708?text=' + waMsg + '" target="_blank" class="btn-carrito-card" onclick="event.stopPropagation()" style="display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;">' +
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</a>' +
         '</div>';
+      var pRef = p;
+      div.addEventListener('click', function(){ abrirDetalle(pRef); });
       grid.appendChild(div);
     });
   });
@@ -545,62 +742,61 @@
       <h2>🏆 Productos Destacados</h2>
       <a href="#" class="ver-todos">Ver todos →</a>
     </div>
-    <div class="grid">
-      <div class="card">
+    <div class="grid" id="grid-productos">
+      <div class="card" onclick="abrirDetalle({nombre:'Toy con baterías',precio:'$39.000',precioAntes:'$48.000',descuento:'-20%',imagen:'https://res.cloudinary.com/ds76fgy5m/image/upload/v1773377851/IMG-20260308-WA0001_u5xvnz.jpg',categoria:'Juguetes',caracteristicas:{}})">
         <div class="card-img-wrap">
           <span class="card-badge">-20%</span>
           <img src="https://res.cloudinary.com/ds76fgy5m/image/upload/v1773377851/IMG-20260308-WA0001_u5xvnz.jpg" alt="Toy">
-          <button class="btn-favorito" onclick="toggleFavorito(this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff3b5c" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+          <button class="btn-favorito" onclick="event.stopPropagation();toggleFavorito(this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff3b5c" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
         </div>
         <div class="card-body">
           <div class="card-nombre">Toy con baterías</div>
           <div class="card-estrellas"><span class="estrellas">★★★★★</span><span class="num-resenas">(12)</span></div>
           <div class="card-precio"><span class="precio-actual">$39.000</span><span class="precio-antes">$48.000</span></div>
-          <button class="btn-carrito-card" onclick="window.open('https://wa.me/573043381708?text=' + encodeURIComponent('Hola, me interesa comprar: *Toy con baterías* por $39.000'), '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</button>
+          <button class="btn-carrito-card" onclick="event.stopPropagation();window.open('https://wa.me/573043381708?text=' + encodeURIComponent('Hola, me interesa comprar: *Toy con baterías* por $39.000'), '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</button>
         </div>
       </div>
-      <div class="card">
+      <div class="card" onclick="abrirDetalle({nombre:'Camiseta Hoodie',precio:'$79.000',imagen:'https://res.cloudinary.com/ds76fgy5m/image/upload/v1773377851/IMG-20260308-WA0003_wp9a90.jpg',categoria:'Ropa',caracteristicas:{}})">
         <div class="card-img-wrap">
           <span class="card-badge nuevo">Nuevo</span>
           <img src="https://res.cloudinary.com/ds76fgy5m/image/upload/v1773377851/IMG-20260308-WA0003_wp9a90.jpg" alt="Hoodie">
-          <button class="btn-favorito" onclick="toggleFavorito(this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff3b5c" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+          <button class="btn-favorito" onclick="event.stopPropagation();toggleFavorito(this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff3b5c" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
         </div>
         <div class="card-body">
           <div class="card-nombre">Camiseta Hoodie</div>
           <div class="card-estrellas"><span class="estrellas">★★★★☆</span><span class="num-resenas">(8)</span></div>
           <div class="card-precio"><span class="precio-actual">$79.000</span></div>
-          <button class="btn-carrito-card" onclick="window.open('https://wa.me/573043381708?text=' + encodeURIComponent('Hola, me interesa comprar: *Camiseta Hoodie* por $79.000'), '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</button>
+          <button class="btn-carrito-card" onclick="event.stopPropagation();window.open('https://wa.me/573043381708?text=' + encodeURIComponent('Hola, me interesa comprar: *Camiseta Hoodie* por $79.000'), '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</button>
         </div>
       </div>
-      <div class="card">
+      <div class="card" onclick="abrirDetalle({nombre:'Sneakers',precio:'$59.000',imagen:'https://res.cloudinary.com/ds76fgy5m/image/upload/v1773377851/IMG-20260308-WA0004_roi3i1.jpg',categoria:'Calzado',caracteristicas:{}})">
         <div class="card-img-wrap">
           <img src="https://res.cloudinary.com/ds76fgy5m/image/upload/v1773377851/IMG-20260308-WA0004_roi3i1.jpg" alt="Sneakers">
-          <button class="btn-favorito" onclick="toggleFavorito(this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff3b5c" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+          <button class="btn-favorito" onclick="event.stopPropagation();toggleFavorito(this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff3b5c" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
         </div>
         <div class="card-body">
           <div class="card-nombre">Sneakers</div>
           <div class="card-estrellas"><span class="estrellas">★★★★★</span><span class="num-resenas">(24)</span></div>
           <div class="card-precio"><span class="precio-actual">$59.000</span></div>
-          <button class="btn-carrito-card" onclick="window.open('https://wa.me/573043381708?text=' + encodeURIComponent('Hola, me interesa comprar: *Sneakers* por $59.000'), '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</button>
+          <button class="btn-carrito-card" onclick="event.stopPropagation();window.open('https://wa.me/573043381708?text=' + encodeURIComponent('Hola, me interesa comprar: *Sneakers* por $59.000'), '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</button>
         </div>
       </div>
-      <div class="card">
+      <div class="card" onclick="abrirDetalle({nombre:'Producto especial',precio:'$79.900',precioAntes:'$99.000',descuento:'-20%',imagen:'https://res.cloudinary.com/ds76fgy5m/image/upload/v1773377852/IMG-20260308-WA0002_cnfjrw.jpg',categoria:'',caracteristicas:{}})">
         <div class="card-img-wrap">
           <span class="card-badge">-20%</span>
           <img src="https://res.cloudinary.com/ds76fgy5m/image/upload/v1773377852/IMG-20260308-WA0002_cnfjrw.jpg" alt="Producto">
-          <button class="btn-favorito" onclick="toggleFavorito(this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff3b5c" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+          <button class="btn-favorito" onclick="event.stopPropagation();toggleFavorito(this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff3b5c" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
         </div>
         <div class="card-body">
           <div class="card-nombre">Producto especial</div>
           <div class="card-estrellas"><span class="estrellas">★★★★☆</span><span class="num-resenas">(5)</span></div>
           <div class="card-precio"><span class="precio-actual">$79.900</span><span class="precio-antes">$99.000</span></div>
-          <button class="btn-carrito-card" onclick="window.open('https://wa.me/573043381708?text=' + encodeURIComponent('Hola, me interesa comprar: *Producto especial* por $79.900'), '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</button>
+          <button class="btn-carrito-card" onclick="event.stopPropagation();window.open('https://wa.me/573043381708?text=' + encodeURIComponent('Hola, me interesa comprar: *Producto especial* por $79.900'), '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</button>
         </div>
       </div>
     </div>
   
-  <div id="grid-productos-dinamicos" class="grid"></div>
-</section>
+  </section>
 
   <section class="beneficios">
     <h2>¿Por qué elegir Covanca?</h2>
@@ -641,11 +837,15 @@
         <span style="font-size:11px;color:#888;">Quita lo que no aplica</span>
       </div>
       <div id="camposDinamicos">
-        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Marca</span><input type="text" class="campo-input" placeholder="Ej: Nike..."><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
-        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Modelo</span><input type="text" class="campo-input" placeholder="Ej: Air Max"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
-        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Color</span><input type="text" class="campo-input" placeholder="Ej: Blanco"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
-        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Talla</span><input type="text" class="campo-input" placeholder="Ej: M, 42"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
-        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Estado</span><input type="text" class="campo-input" placeholder="Nuevo / Usado"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
+        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Marca</span><input type="text" class="campo-input" placeholder="Ej: Nike... (Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
+        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Modelo</span><input type="text" class="campo-input" placeholder="Ej: Air Max (Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
+        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Color</span><input type="text" class="campo-input" placeholder="Ej: Blanco (Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
+        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Talla</span><input type="text" class="campo-input" placeholder="Ej: M, 42 (Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
+        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Estado</span><input type="text" class="campo-input" placeholder="Nuevo / Usado (Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
+        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Descuento</span><input type="text" class="campo-input" placeholder="Ej: 20% OFF (Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
+        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Promoción</span><input type="text" class="campo-input" placeholder="Ej: 2x1 los martes (Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
+        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Unidades disponibles</span><input type="text" class="campo-input" placeholder="Ej: 5 unidades (Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
+        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Nombre de la empresa</span><input type="text" class="campo-input" placeholder="Ej: Mi Tienda (Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
       </div>
       <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
         <input type="text" id="nuevoNombre" placeholder="Nombre del campo personalizado" style="flex:1;padding:9px 12px;border:2px solid #e5e7eb;border-radius:10px;font-family:'Poppins',sans-serif;font-size:13px;outline:none;">
@@ -715,20 +915,66 @@
   </div>
 </div>
 
+<!-- MODAL DETALLE PRODUCTO -->
+<div id="modal-detalle" class="modal-detalle-overlay">
+  <div class="detalle-header">
+    <a class="logo" href="#" onclick="cerrarDetalle();return false;">
+      <img src="https://res.cloudinary.com/ds76fgy5m/image/upload/v1773377851/IMG-20260307-WA0003_aiq1sr.jpg" alt="Covanca">
+      <span class="logo-texto">Co<span>van</span>ca</span>
+    </a>
+    <div class="buscador">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" placeholder="¿Qué categoría buscas?">
+    </div>
+    <button class="btn-detalle-cerrar" onclick="cerrarDetalle()">✕</button>
+  </div>
+  <div class="detalle-galeria-wrap">
+    <div id="detalle-contador"></div>
+    <div id="detalle-galeria"></div>
+    <button class="detalle-btn-heart">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff3b5c" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    </button>
+    <button class="detalle-btn-share" onclick="compartirProducto()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#002366" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+    </button>
+    <button id="detalle-btn-prev" class="detalle-btn-nav detalle-btn-prev" onclick="cambiarImg(-1)" style="display:none;">&#8249;</button>
+    <button id="detalle-btn-next" class="detalle-btn-nav detalle-btn-next" onclick="cambiarImg(1)" style="display:none;">&#8250;</button>
+  </div>
+  <div class="detalle-content">
+    <div id="detalle-empresa" class="detalle-empresa">
+      <span class="detalle-empresa-icon">🏪</span>
+      <span id="detalle-empresa-txt"></span>
+    </div>
+    <div id="detalle-nombre"></div>
+    <div class="detalle-precio-wrap">
+      <span id="detalle-precio-antes" class="detalle-precio-antes"></span>
+      <span id="detalle-precio" class="detalle-precio-val"></span>
+      <span id="detalle-desc-badge" class="detalle-desc-badge"></span>
+    </div>
+    <div id="detalle-caract-titulo" class="detalle-caract-titulo">📋 Características</div>
+    <div id="detalle-caract"></div>
+    <a id="detalle-wa-btn" href="#" target="_blank" class="btn-comprar-detalle">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+      Comprar ahora
+    </a>
+    <div class="detalle-garantias">
+      <div>↩️ <strong>Devolución gratis.</strong> Tienes 30 días desde que lo recibes.</div>
+      <div>🛡️ <strong>Compra Protegida.</strong> Recibe el producto que esperabas o te devolvemos el dinero.</div>
+    </div>
+    <div id="detalle-rel-seccion">
+      <div id="detalle-cat-label" class="detalle-cat-titulo"></div>
+      <div id="detalle-rel-grid" class="rel-grid"></div>
+    </div>
+  </div>
+</div>
+
 <footer>
   <div class="footer-content">
     <div class="footer-logo">Co<span>van</span>ca</div>
     <div class="footer-divider"></div>
     <p>WhatsApp: <a href="https://wa.me/573043381708">3043381708</a></p>
-    <p>Email: <a href="mailto:covanca@gmail.com">covanca@gmail.com</a></p>
+    <p>Email: <a href="/cdn-cgi/l/email-protection#4c2f233a2d222f2d0c2b212d2520622f2321"><span class="__cf_email__" data-cfemail="10737f66717e737150777d71797c3e737f7d">[email&#160;protected]</span></a></p>
     <h3>Servicios disponibles</h3>
     <ul>
       <li>💄 Maquillaje · 💅 Uñas · ✂️ Peluquería</li>
       <li>💪 Gym · 🔧 Taller · 📚 Profesores</li>
-    </ul>
-  </div>
-  <div class="footer-bottom">© 2026 Covanca — Todos los derechos reservados</div>
-</footer>
-
-</body>
-</html>
