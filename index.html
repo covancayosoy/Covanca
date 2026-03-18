@@ -46,9 +46,19 @@
     }
   }
   function mostrarImagen(event) {
-    var img = document.getElementById('preview');
-    img.src = URL.createObjectURL(event.target.files[0]);
-    img.style.display = 'block';
+    var archivos = Array.from(event.target.files).slice(0, 6);
+    var previewWrap = document.getElementById('preview-wrap');
+    previewWrap.innerHTML = '';
+    archivos.forEach(function(file) {
+      var img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      img.className = 'preview-img';
+      img.style.display = 'block';
+      previewWrap.appendChild(img);
+    });
+    if (archivos.length < event.target.files.length) {
+      alert('Solo se permiten máximo 6 fotos. Se tomaron las primeras 6.');
+    }
   }
   function actualizarNombre() {
     var el = document.getElementById('nombreMostrado');
@@ -147,7 +157,7 @@
 
     var caract = p.caracteristicas || {};
     var empresa = caract['Nombre de la empresa'] || '';
-    var descuento = caract['Descuento'] || p.descuento || '';
+    var descuento = caract['Descuento %'] || caract['Descuento'] || p.descuento || '';
     var promocion = caract['Promoción'] || '';
     var unidades = caract['Unidades disponibles'] || '';
 
@@ -167,22 +177,22 @@
     var precioRealEl = document.getElementById('detalle-precio');
 
     if (descuento.trim() !== '') {
-      // Intentar calcular precio real si el descuento es un porcentaje (ej: "8%", "20% OFF")
-      var porcMatch = descuento.match(/(\d+(\.\d+)?)\s*%/);
-      var precioNumero = parseFloat((p.precio || '').replace(/[^0-9,]/g, '').replace(',', '.'));
-      if (porcMatch && !isNaN(precioNumero)) {
+      // Extraer número del descuento sin importar si escriben "21", "21%", "21% OFF"
+      var porcMatch = descuento.match(/(\d+(\.\d+)?)/);
+      var precioNumero = parseFloat((p.precio || '').replace(/[^0-9]/g, ''));
+      if (porcMatch && !isNaN(precioNumero) && precioNumero > 0) {
         var porc = parseFloat(porcMatch[1]);
         var precioReal = Math.round(precioNumero * (1 - porc / 100));
         var precioRealFormateado = '$' + precioReal.toLocaleString('es-CO').replace(/,/g, '.');
         precioAntesEl.textContent = p.precio;
         precioAntesEl.style.display = 'inline-block';
         precioRealEl.textContent = precioRealFormateado;
+        badgeEl.textContent = porc + '%';
       } else {
-        // Si no es porcentaje calculable, solo mostrar el badge
         precioAntesEl.style.display = 'none';
         precioRealEl.textContent = p.precio || '';
+        badgeEl.textContent = descuento;
       }
-      badgeEl.textContent = descuento;
       badgeEl.style.display = 'inline-block';
     } else {
       badgeEl.style.display = 'none';
@@ -197,7 +207,7 @@
     // Características completas (excluye los campos especiales)
     var cont = document.getElementById('detalle-caract');
     cont.innerHTML = '';
-    var excluir = ['Nombre de la empresa','Descuento','Promoción','Unidades disponibles'];
+    var excluir = ['Nombre de la empresa','Descuento %','Descuento','Promoción','Unidades disponibles'];
     var tieneCaract = false;
     Object.keys(caract).forEach(function(k) {
       if (excluir.indexOf(k) >= 0) return;
@@ -641,15 +651,19 @@
 
     // 2. Firebase + Cloudinary en segundo plano
     var fileInput = document.getElementById('fotoProducto');
-    var fileToUpload = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+    var archivos = fileInput && fileInput.files ? Array.from(fileInput.files).slice(0, 6) : [];
 
     (async function() {
       try {
-        var imgUrl = '';
-        if (fileToUpload) imgUrl = await subirImagen(fileToUpload);
+        var imagenes = [];
+        for (var fi = 0; fi < archivos.length; fi++) {
+          var url = await subirImagen(archivos[fi]);
+          imagenes.push(url);
+        }
         await addDoc(collection(db, 'productos'), {
           nombre: nombre,
-          imagen: imgUrl,
+          imagen: imagenes.length > 0 ? imagenes[0] : '',
+          imagenes: imagenes,
           precio: precio,
           categoria: cat,
           plan: plan,
@@ -676,7 +690,7 @@
       var p = d.data();
       window.productosCache.push(p);
       var caract = p.caracteristicas || {};
-      var excluir = ['Nombre de la empresa','Descuento','Promoción','Unidades disponibles'];
+      var excluir = ['Nombre de la empresa','Descuento %','Descuento','Promoción','Unidades disponibles'];
       var claves = Object.keys(caract).filter(function(k){ return excluir.indexOf(k) < 0; });
       var caractHtml = '';
       for (var ci = 0; ci < Math.min(3, claves.length); ci++) {
@@ -851,9 +865,9 @@
     <h2>📦 Vende tu producto con Covanca</h2>
     <p class="subtitulo">Sube tu producto, elige un plan y lo movemos por ti.</p>
     <div class="vende-form">
-      <label>📸 Foto del producto</label>
-      <input type="file" id="fotoProducto" accept="image/*" onchange="mostrarImagen(event)">
-      <img id="preview" class="preview-img" alt="Vista previa">
+      <label>📸 Foto del producto (máximo 6)</label>
+      <input type="file" id="fotoProducto" accept="image/*" multiple onchange="mostrarImagen(event)">
+      <div id="preview-wrap" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;"></div>
       <label>🏷️ Nombre del producto</label>
       <input type="text" id="nombreProducto" placeholder="Ej: Zapatos Nike talla 42" oninput="actualizarNombre()">
       <div class="nombre-producto" id="nombreMostrado"></div>
@@ -867,7 +881,7 @@
         <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Color</span><input type="text" class="campo-input" placeholder="(Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
         <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Talla</span><input type="text" class="campo-input" placeholder="(Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
         <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Estado</span><input type="text" class="campo-input" placeholder="(Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
-        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Descuento</span><input type="text" class="campo-input" placeholder="(Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
+        <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Descuento %</span><input type="text" class="campo-input" placeholder="(Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
         <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Promoción</span><input type="text" class="campo-input" placeholder="(Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
         <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Unidades disponibles</span><input type="text" class="campo-input" placeholder="(Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
         <div class="campo-item"><div class="campo-fila"><span class="campo-etiqueta">Nombre de la empresa</span><input type="text" class="campo-input" placeholder="(Sino aplica presione la X)"><button class="btn-quitar" onclick="quitarCampo(this)">✕</button></div></div>
