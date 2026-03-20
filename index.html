@@ -431,7 +431,8 @@
   .ver-todos { color: var(--naranja); font-weight: 600; font-size: 14px; text-decoration: none; }
   .grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 18px; }
 
-  .card { background: var(--blanco); border-radius: var(--radio); box-shadow: var(--sombra); overflow: hidden; transition: all .3s; cursor: pointer; display: flex; flex-direction: column; }
+  .card { background: var(--blanco); border-radius: var(--radio); box-shadow: var(--sombra); overflow: hidden; transition: all .3s; cursor: pointer; display: flex; flex-direction: column; min-width: 0; width: 100%; }
+  #grid-productos { width: 100%; }
   .card-caract-mini { margin: 4px 0 6px; }
   .card-caract-mini span { font-size: 11px; color: #6b7280; display: block; line-height: 1.6; }
   .card:hover { transform: translateY(-5px); box-shadow: var(--sombra2); }
@@ -547,8 +548,9 @@
     .categorias, .productos, .vende-section { padding: 26px 14px; }
     .beneficios { padding: 32px 14px; }
     .grid { display: grid; grid-template-columns: repeat(2,1fr) !important; gap: 12px; width: 100%; }
+    .card { min-width: 0 !important; max-width: 100% !important; }
+    .card img { height: 150px; max-width: 100%; }
     .productos { padding: 16px 10px 30px; }
-    .card img { height: 150px; }
     .beneficios-grid { grid-template-columns: repeat(2,1fr); }
     .planes-grid { grid-template-columns: 1fr; }
     footer { padding: 32px 14px 18px; }
