@@ -319,35 +319,11 @@
     if (!grid) return;
     grid.innerHTML = '';
     var count = 0;
-    if (window.productosCache) {
+    if (window.productosCache && categoria) {
       window.productosCache.forEach(function(p) {
         if (count >= 6) return;
         if (p.nombre === nombreActual) return;
-        // Mostrar si coincide con la categoría O siempre (ya que todos tienen Otro en secreto)
-        var coincide = (p.categoria === categoria) || (p.categorias && p.categorias.indexOf(categoria) >= 0);
-        if (!coincide) return;
-        var div = document.createElement('div');
-        div.className = 'rel-card';
-        var pCopy = p;
-        div.onclick = function() { abrirDetalle(pCopy); };
-        var tieneDesc = (p.caracteristicas && (p.caracteristicas['Descuento %'] || p.caracteristicas['Descuento'])) || p.descuento || '';
-        div.innerHTML =
-          (p.imagen ? '<img src="' + p.imagen + '" alt="' + p.nombre + '">' : '<div class="rel-noimg">📦</div>') +
-          '<div class="rel-nombre">' + p.nombre + '</div>' +
-          (tieneDesc ? '<div class="rel-desc">' + tieneDesc + '</div>' : '') +
-          '<div class="rel-precio">' + p.precio + '</div>' +
-          '<div class="rel-envio">🚚 Envío gratis</div>';
-        grid.appendChild(div);
-        count++;
-      });
-    }
-    // Si categoría es Otro, mostrar todos los que no son el actual
-    if (categoria === 'Otro' || count === 0) {
-      grid.innerHTML = '';
-      count = 0;
-      window.productosCache && window.productosCache.forEach(function(p) {
-        if (count >= 6) return;
-        if (p.nombre === nombreActual) return;
+        if (p.categoria !== categoria) return;
         var div = document.createElement('div');
         div.className = 'rel-card';
         var pCopy = p;
@@ -570,7 +546,7 @@
     .banner-stats { justify-content: center; }
     .categorias, .productos, .vende-section { padding: 26px 14px; }
     .beneficios { padding: 32px 14px; }
-    .grid { grid-template-columns: repeat(2,1fr); gap: 12px; }
+    .grid { grid-template-columns: repeat(2,1fr) !important; gap: 12px; }
     .beneficios-grid { grid-template-columns: repeat(2,1fr); }
     .planes-grid { grid-template-columns: 1fr; }
     footer { padding: 32px 14px 18px; }
@@ -739,7 +715,6 @@
           imagenes: imagenes,
           precio: precio,
           categoria: cat,
-          categorias: [cat, 'Otro'],
           plan: plan,
           caracteristicas: caract,
           fecha: new Date().toISOString()
@@ -869,7 +844,6 @@
       <div class="cat-item" onclick="filtrarCategoria('Deporte')"><span class="cat-icono">⚽</span><span class="cat-nombre">Deporte</span></div>
       <div class="cat-item" onclick="filtrarCategoria('Otro')"><span class="cat-icono">📦</span><span class="cat-nombre">Más</span></div>
     </div>
-    </div>
   </section>
 
   <section class="productos" id="seccion-productos">
@@ -947,7 +921,7 @@
 <div id="vista-guardados" class="vista">
   <div style="padding:40px 50px;">
     <h2 style="font-size:24px;color:#002366;margin-bottom:24px;">❤️ Productos Guardados</h2>
-    <div id="grid-guardados" class="grid"></div>
+    <div id="grid-guardados" class="grid grid-guardados-inner"></div>
     <div id="guardados-vacio" class="guardados-vacio">
       <div class="icono">🤍</div>
       <h3>Aún no tienes guardados</h3>
