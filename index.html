@@ -49,14 +49,13 @@
     var archivos = Array.from(event.target.files).slice(0, 6);
     var previewWrap = document.getElementById('preview-wrap');
     previewWrap.innerHTML = '';
-    archivos.forEach(function(file) {
+    archivos.forEach(function(file, i) {
       var img = document.createElement('img');
       img.src = URL.createObjectURL(file);
-      img.className = 'preview-img';
-      img.style.display = 'block';
+      img.style.cssText = 'width:100%;height:90px;object-fit:cover;border-radius:8px;display:block;';
       previewWrap.appendChild(img);
     });
-    if (archivos.length < event.target.files.length) {
+    if (event.target.files.length > 6) {
       alert('Solo se permiten máximo 6 fotos. Se tomaron las primeras 6.');
     }
   }
@@ -324,12 +323,36 @@
       window.productosCache.forEach(function(p) {
         if (count >= 6) return;
         if (p.nombre === nombreActual) return;
-        if (categoria && p.categoria !== categoria) return;
+        // Mostrar si coincide con la categoría O siempre (ya que todos tienen Otro en secreto)
+        var coincide = (p.categoria === categoria) || (p.categorias && p.categorias.indexOf(categoria) >= 0);
+        if (!coincide) return;
         var div = document.createElement('div');
         div.className = 'rel-card';
         var pCopy = p;
         div.onclick = function() { abrirDetalle(pCopy); };
-        var tieneDesc = (p.caracteristicas && p.caracteristicas['Descuento']) || p.descuento || '';
+        var tieneDesc = (p.caracteristicas && (p.caracteristicas['Descuento %'] || p.caracteristicas['Descuento'])) || p.descuento || '';
+        div.innerHTML =
+          (p.imagen ? '<img src="' + p.imagen + '" alt="' + p.nombre + '">' : '<div class="rel-noimg">📦</div>') +
+          '<div class="rel-nombre">' + p.nombre + '</div>' +
+          (tieneDesc ? '<div class="rel-desc">' + tieneDesc + '</div>' : '') +
+          '<div class="rel-precio">' + p.precio + '</div>' +
+          '<div class="rel-envio">🚚 Envío gratis</div>';
+        grid.appendChild(div);
+        count++;
+      });
+    }
+    // Si categoría es Otro, mostrar todos los que no son el actual
+    if (categoria === 'Otro' || count === 0) {
+      grid.innerHTML = '';
+      count = 0;
+      window.productosCache && window.productosCache.forEach(function(p) {
+        if (count >= 6) return;
+        if (p.nombre === nombreActual) return;
+        var div = document.createElement('div');
+        div.className = 'rel-card';
+        var pCopy = p;
+        div.onclick = function() { abrirDetalle(pCopy); };
+        var tieneDesc = (p.caracteristicas && (p.caracteristicas['Descuento %'] || p.caracteristicas['Descuento'])) || p.descuento || '';
         div.innerHTML =
           (p.imagen ? '<img src="' + p.imagen + '" alt="' + p.nombre + '">' : '<div class="rel-noimg">📦</div>') +
           '<div class="rel-nombre">' + p.nombre + '</div>' +
@@ -420,11 +443,11 @@
   .categorias { padding: 45px 50px 25px; text-align: center; }
   .categorias h2 { font-size: 26px; font-weight: 700; color: var(--azul); margin-bottom: 26px; }
   .cats-grid { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-  .cat-item { background: var(--blanco); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; transition: all .25s; box-shadow: var(--sombra); min-width: 82px; border: 2px solid transparent; }
+  .cat-item { background: var(--blanco); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; transition: all .25s; box-shadow: var(--sombra); min-width: 66px; border: 2px solid transparent; }
   .cat-item:hover { transform: translateY(-4px); border-color: var(--naranja); }
   .cat-item.activa { border-color: var(--azul); background: #eef2ff; transform: translateY(-4px); }
-  .cat-icono { font-size: 26px; }
-  .cat-nombre { font-size: 11px; font-weight: 600; color: var(--azul); }
+  .cat-icono { font-size: 20px; }
+  .cat-nombre { font-size: 10px; font-weight: 600; color: var(--azul); }
 
   .productos { padding: 20px 50px 45px; }
   .seccion-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
@@ -593,7 +616,7 @@
   .detalle-header { position:sticky; top:0; z-index:10; background:white; box-shadow:0 2px 10px rgba(0,0,0,.08); display:flex; align-items:center; gap:10px; padding:10px 14px; }
   .detalle-header .logo-texto { font-size:18px; }
   .detalle-header .buscador { flex:1; max-width:none; }
-  .btn-detalle-cerrar { background:#f1f4f9; border:none; border-radius:50%; width:36px; height:36px; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .btn-detalle-cerrar { background:#ff3b3b; border:none; border-radius:50%; width:36px; height:36px; font-size:18px; font-weight:700; color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 2px 8px rgba(255,59,59,.4); }
   .detalle-galeria-wrap { position:relative; background:#f8f9fb; min-height:300px; }
   #detalle-contador { position:absolute; top:10px; left:12px; background:rgba(0,0,0,.45); color:white; border-radius:20px; padding:3px 10px; font-size:12px; z-index:5; }
   .detalle-btn-heart { position:absolute; top:10px; right:12px; background:white; border:none; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.15); z-index:5; }
@@ -690,7 +713,16 @@
     );
     window.open('https://wa.me/573004349882?text=' + msg, '_blank');
 
-    // 2. Firebase + Cloudinary en segundo plano
+    // Mostrar mensaje de espera
+    var toast = document.createElement('div');
+    toast.id = 'toast-publicando';
+    toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#002366;color:white;padding:14px 24px;border-radius:30px;font-family:Poppins,sans-serif;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.3);text-align:center;max-width:320px;';
+    toast.innerHTML = '⏳ Tu producto se está publicando...<br><span style="font-size:12px;opacity:.8;">En unos segundos aparecerá en la página</span>';
+    document.body.appendChild(toast);
+    setTimeout(function() {
+      var t = document.getElementById('toast-publicando');
+      if (t) t.remove();
+    }, 8000);
     var fileInput = document.getElementById('fotoProducto');
     var archivos = fileInput && fileInput.files ? Array.from(fileInput.files).slice(0, 6) : [];
 
@@ -739,7 +771,20 @@
         var k = claves[ci];
         caractHtml += '<span>' + k + ': <strong>' + caract[k] + '</strong></span>';
       }
-      var waMsg = encodeURIComponent('Hola, me interesa: *' + p.nombre + '* por ' + p.precio);
+      // Calcular precio con descuento para la tarjeta
+      var descuentoCard = caract['Descuento %'] || caract['Descuento'] || '';
+      var precioMostrar = p.precio;
+      var precioOriginalHtml = '';
+      if (descuentoCard.trim() !== '') {
+        var porcMatch = descuentoCard.match(/(\d+(\.\d+)?)/);
+        var precioNum = parseFloat((p.precio || '').replace(/[^0-9]/g, ''));
+        if (porcMatch && !isNaN(precioNum) && precioNum > 0) {
+          var porcCard = parseFloat(porcMatch[1]);
+          var precioConDesc = Math.round(precioNum * (1 - porcCard / 100));
+          precioMostrar = '$' + precioConDesc.toLocaleString('es-CO').replace(/,/g, '.');
+          precioOriginalHtml = '<span class="precio-antes" style="display:block;font-size:11px;">' + p.precio + '</span>';
+        }
+      }
       var div = document.createElement('div');
       div.className = 'card card-dinamica';
       div.setAttribute('data-categoria', p.categoria || '');
@@ -753,7 +798,7 @@
         '<div class="card-nombre">' + p.nombre + '</div>' +
         '<div class="card-estrellas"><span class="estrellas">★★★★★</span><span class="num-resenas">Nuevo</span></div>' +
         (caractHtml ? '<div class="card-caract-mini">' + caractHtml + '</div>' : '') +
-        '<div class="card-precio"><span class="precio-actual">' + p.precio + '</span></div>' +
+        '<div class="card-precio"><span class="precio-actual">' + precioMostrar + '</span>' + precioOriginalHtml + '</div>' +
         '<a href="https://wa.me/573004349882?text=' + waMsg + '" target="_blank" class="btn-carrito-card" onclick="event.stopPropagation()" style="display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;">' +
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</a>' +
         '</div>';
@@ -811,14 +856,19 @@
     <h2>¿Qué estás buscando?</h2>
     <div class="cats-grid">
       <div class="cat-item" onclick="filtrarCategoria('Ropa')"><span class="cat-icono">👗</span><span class="cat-nombre">Ropa</span></div>
-      <div class="cat-item" onclick="filtrarCategoria('Maquillaje')"><span class="cat-icono">💄</span><span class="cat-nombre">Belleza</span></div>
+      <div class="cat-item" onclick="filtrarCategoria('Maquillaje')"><span class="cat-icono">💄</span><span class="cat-nombre">Maquillaje</span></div>
       <div class="cat-item" onclick="filtrarCategoria('Uñas')"><span class="cat-icono">💅</span><span class="cat-nombre">Uñas</span></div>
       <div class="cat-item" onclick="filtrarCategoria('Peluquería')"><span class="cat-icono">✂️</span><span class="cat-nombre">Peluquería</span></div>
       <div class="cat-item" onclick="filtrarCategoria('Gym')"><span class="cat-icono">💪</span><span class="cat-nombre">Gym</span></div>
       <div class="cat-item" onclick="filtrarCategoria('Taller')"><span class="cat-icono">🔧</span><span class="cat-nombre">Taller</span></div>
       <div class="cat-item" onclick="filtrarCategoria('Clases')"><span class="cat-icono">📚</span><span class="cat-nombre">Clases</span></div>
+      <div class="cat-item" onclick="filtrarCategoria('Tecnología')"><span class="cat-icono">📱</span><span class="cat-nombre">Tecnología</span></div>
+      <div class="cat-item" onclick="filtrarCategoria('Hogar')"><span class="cat-icono">🏠</span><span class="cat-nombre">Hogar</span></div>
+      <div class="cat-item" onclick="filtrarCategoria('Juguetes')"><span class="cat-icono">🧸</span><span class="cat-nombre">Juguetes</span></div>
+      <div class="cat-item" onclick="filtrarCategoria('Calzado')"><span class="cat-icono">👟</span><span class="cat-nombre">Calzado</span></div>
       <div class="cat-item" onclick="filtrarCategoria('Deporte')"><span class="cat-icono">⚽</span><span class="cat-nombre">Deporte</span></div>
       <div class="cat-item" onclick="filtrarCategoria('Otro')"><span class="cat-icono">📦</span><span class="cat-nombre">Más</span></div>
+    </div>
     </div>
   </section>
 
@@ -913,7 +963,7 @@
     <div class="vende-form">
       <label>📸 Foto del producto (máximo 6)</label>
       <input type="file" id="fotoProducto" accept="image/*" multiple onchange="mostrarImagen(event)">
-      <div id="preview-wrap" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;"></div>
+      <div id="preview-wrap" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;"></div>
       <label>🏷️ Nombre del producto</label>
       <input type="text" id="nombreProducto" placeholder="Ej: Zapatos Nike talla 42" oninput="actualizarNombre()">
       <div class="nombre-producto" id="nombreMostrado"></div>
@@ -939,7 +989,7 @@
       <label style="margin-top:20px;">💰 Precio del producto</label>
       <input type="text" id="precioProducto" placeholder="Ej: 35000" oninput="formatearPrecio(this)" style="width:100%;padding:10px 13px;border:2px solid #e5e7eb;border-radius:10px;font-family:'Poppins',sans-serif;font-size:14px;outline:none;box-sizing:border-box;">
 
-      <label style="margin-top:20px;">🧨‼️Escoge la categoría de tu producto‼️🧨</label>
+      <label style="margin-top:20px;font-size:18px;font-weight:800;color:var(--azul);">🧨‼️ Escoge la categoría de tu producto ‼️🧨</label>
       <div class="cats-producto">
         <div class="cat-prod-item" onclick="seleccionarCategoria(this, 'Ropa')"><div class="cat-prod-icono">👗</div><div class="cat-prod-nombre">Ropa</div></div>
         <div class="cat-prod-item" onclick="seleccionarCategoria(this, 'Maquillaje')"><div class="cat-prod-icono">💄</div><div class="cat-prod-nombre">Maquillaje</div></div>
@@ -977,7 +1027,7 @@
           <a class="btn-elegir" href="#" id="btn-pub-gratis" onclick="subirYPublicar('Gratis','$0.000')">📲 Elegir plan</a>
         </div>
       </div>
-      <div class="aviso-devolucion">✅ <strong>Garantía total:</strong> Devolución del 100% si pasa el plazo.</div>
+      <div class="aviso-devolucion">✅ <strong>Garantía de tu plan:</strong> Devolución del 100% si pasa el plazo.</div>
       <div class="whatsapp-flotante">
         <a href="https://wa.me/573004349882" target="_blank">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#25D366" viewBox="0 0 24 24"><path d="M20.52 3.48A12 12 0 1 0 3.48 20.52 12 12 0 0 0 20.52 3.48zm-8.52 16a9.93 9.93 0 0 1-5.1-1.4l-.36-.22-3.74.98 1-3.64-.24-.38A10 10 0 1 1 12 19.5zm5.5-7.4c-.3-.15-1.77-.87-2.04-.97s-.47-.15-.67.15-.77.97-.94 1.17-.35.22-.65.07a8.15 8.15 0 0 1-2.4-1.48 9 9 0 0 1-1.66-2.07c-.17-.3 0-.46.13-.6s.3-.35.44-.53a2 2 0 0 0 .3-.5.55.55 0 0 0-.03-.52c-.07-.15-.67-1.62-.92-2.22s-.49-.5-.67-.51H8.1a1.06 1.06 0 0 0-.77.36A3.24 3.24 0 0 0 6.32 9a5.63 5.63 0 0 0 1.18 3c.15.2 2.1 3.2 5.08 4.49a17.1 17.1 0 0 0 1.7.63 4.1 4.1 0 0 0 1.87.12c.57-.09 1.77-.72 2.02-1.42s.25-1.3.17-1.42-.25-.2-.55-.34z"/></svg>
@@ -1059,7 +1109,7 @@
     <div class="footer-logo">Co<span>van</span>ca</div>
     <div class="footer-divider"></div>
     <p>WhatsApp: <a href="https://wa.me/573004349882">3004349882</a></p>
-    <p>Email: <a href="mailto:covanca26@gmail.com">covanca26@gmail.com</a></p>
+    <p>Email: <a href="mailto:covanca26@gmail.com">covanca26(arroba)gmail.com</a></p>
     <h3>Servicios disponibles</h3>
     <ul>
       <li>💄 Maquillaje · 💅 Uñas · ✂️ Peluquería</li>
