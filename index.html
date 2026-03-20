@@ -785,8 +785,8 @@
           precioOriginalHtml = '<span class="precio-antes" style="display:block;font-size:11px;">' + p.precio + '</span>';
         }
       }
+      var waMsg = encodeURIComponent('Hola, me interesa: *' + p.nombre + '* por ' + p.precio);
       var div = document.createElement('div');
-      div.className = 'card card-dinamica';
       div.setAttribute('data-categoria', p.categoria || '');
       div.innerHTML =
         '<div class="card-img-wrap">' +
@@ -1109,7 +1109,7 @@
     <div class="footer-logo">Co<span>van</span>ca</div>
     <div class="footer-divider"></div>
     <p>WhatsApp: <a href="https://wa.me/573004349882">3004349882</a></p>
-    <p>Email: <a href="mailto:covanca26@gmail.com">covanca26(arroba)gmail.com</a></p>
+    <p>Email: covanca26(arroba)gmail.com</p>
     <h3>Servicios disponibles</h3>
     <ul>
       <li>💄 Maquillaje · 💅 Uñas · ✂️ Peluquería</li>
