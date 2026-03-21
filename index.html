@@ -766,6 +766,7 @@
       }
       var waMsg = encodeURIComponent('Hola, me interesa: *' + p.nombre + '* por ' + p.precio);
       var div = document.createElement('div');
+      div.className = 'card card-dinamica';
       div.setAttribute('data-categoria', p.categoria || '');
       div.innerHTML =
         '<div class="card-img-wrap">' +
