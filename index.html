@@ -40,7 +40,7 @@
       var p = guardados[keys[i]];
       var div = document.createElement('div');
       div.className = 'card';
-      var waMsg = encodeURIComponent('Hola, me interesa comprar: *' + p.nombre + '* por ' + p.precio);
+      var waMsg = encodeURIComponent('🛒 Hola me interesa comprar:\n🏷️ Nombre: ' + p.nombre + '\n📦 Categoría: ' + (p.categoria||'') + '.\n📋 Características:...\n✏️ Coloca nuevo item: ( Por desea pedir alguna cantidad o color en específico)');
       div.innerHTML = '<div class="card-img-wrap"><img src="' + p.img + '" alt="' + p.nombre + '"></div><div class="card-body"><div class="card-nombre">' + p.nombre + '</div><div class="card-precio"><span class="precio-actual">' + p.precio + '</span></div><a href="https://wa.me/573004349882?text=' + waMsg + '" target="_blank" class="btn-carrito-card" style="display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</a></div>';
       grid.appendChild(div);
     }
@@ -271,7 +271,7 @@
     document.getElementById('detalle-caract-titulo').style.display = tieneCaract ? 'block' : 'none';
 
     // WhatsApp
-    var waMsg = encodeURIComponent('Hola, me interesa: *' + (p.nombre||'') + '* por ' + (p.precio||''));
+    var waMsg = encodeURIComponent('🛒 Hola me interesa comprar:\n🏷️ Nombre: ' + (p.nombre||'') + '\n📦 Categoría: ' + (p.categoria||'') + '.\n📋 Características:...\n✏️ Coloca nuevo item: ( Por desea pedir alguna cantidad o color en específico)');
     document.getElementById('detalle-wa-btn').href = 'https://wa.me/573004349882?text=' + waMsg;
 
     // Categoría y relacionados
@@ -764,7 +764,7 @@
           precioOriginalHtml = '<span class="precio-antes" style="display:block;font-size:11px;">' + p.precio + '</span>';
         }
       }
-      var waMsg = encodeURIComponent('Hola, me interesa: *' + p.nombre + '* por ' + p.precio);
+      var waMsg = encodeURIComponent('🛒 Hola me interesa comprar:\n🏷️ Nombre: ' + p.nombre + '\n📦 Categoría: ' + (p.categoria||'') + '.\n📋 Características:...\n✏️ Coloca nuevo item: ( Por desea pedir alguna cantidad o color en específico)');
       var div = document.createElement('div');
       div.className = 'card card-dinamica';
       div.setAttribute('data-categoria', p.categoria || '');
@@ -867,7 +867,7 @@
           <div class="card-nombre">Toy con baterías</div>
           <div class="card-estrellas"><span class="estrellas">★★★★★</span><span class="num-resenas">(12)</span></div>
           <div class="card-precio"><span class="precio-actual">$39.000</span><span class="precio-antes">$48.000</span></div>
-          <button class="btn-carrito-card" onclick="event.stopPropagation();window.open('https://wa.me/573004349882?text=' + encodeURIComponent('Hola, me interesa comprar: *Toy con baterías* por $39.000'), '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</button>
+          <button class="btn-carrito-card" onclick="event.stopPropagation();window.open('https://wa.me/573004349882?text=' + encodeURIComponent('🛒 Hola me interesa comprar:\n🏷️ Nombre: Toy con baterías\n📦 Categoría: Juguetes.\n📋 Características:...\n✏️ Coloca nuevo item: ( Por desea pedir alguna cantidad o color en específico)'), '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</button>
         </div>
       </div>
       <div class="card" data-categoria="Ropa" onclick="abrirDetalle({nombre:'Camiseta Hoodie',precio:'$79.000',imagen:'https://res.cloudinary.com/ds76fgy5m/image/upload/v1773377851/IMG-20260308-WA0003_wp9a90.jpg',categoria:'Ropa',caracteristicas:{}})">
@@ -880,7 +880,7 @@
           <div class="card-nombre">Camiseta Hoodie</div>
           <div class="card-estrellas"><span class="estrellas">★★★★☆</span><span class="num-resenas">(8)</span></div>
           <div class="card-precio"><span class="precio-actual">$79.000</span></div>
-          <button class="btn-carrito-card" onclick="event.stopPropagation();window.open('https://wa.me/573004349882?text=' + encodeURIComponent('Hola, me interesa comprar: *Camiseta Hoodie* por $79.000'), '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</button>
+          <button class="btn-carrito-card" onclick="event.stopPropagation();window.open('https://wa.me/573004349882?text=' + encodeURIComponent('🛒 Hola me interesa comprar:\n🏷️ Nombre: Camiseta Hoodie\n📦 Categoría: Ropa.\n📋 Características:...\n✏️ Coloca nuevo item: ( Por desea pedir alguna cantidad o color en específico)'), '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</button>
         </div>
       </div>
       <div class="card" data-categoria="Calzado" onclick="abrirDetalle({nombre:'Sneakers',precio:'$59.000',imagen:'https://res.cloudinary.com/ds76fgy5m/image/upload/v1773377851/IMG-20260308-WA0004_roi3i1.jpg',categoria:'Calzado',caracteristicas:{}})">
@@ -892,7 +892,7 @@
           <div class="card-nombre">Sneakers</div>
           <div class="card-estrellas"><span class="estrellas">★★★★★</span><span class="num-resenas">(24)</span></div>
           <div class="card-precio"><span class="precio-actual">$59.000</span></div>
-          <button class="btn-carrito-card" onclick="event.stopPropagation();window.open('https://wa.me/573004349882?text=' + encodeURIComponent('Hola, me interesa comprar: *Sneakers* por $59.000'), '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</button>
+          <button class="btn-carrito-card" onclick="event.stopPropagation();window.open('https://wa.me/573004349882?text=' + encodeURIComponent('🛒 Hola me interesa comprar:\n🏷️ Nombre: Sneakers\n📦 Categoría: Calzado.\n📋 Características:...\n✏️ Coloca nuevo item: ( Por desea pedir alguna cantidad o color en específico)'), '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</button>
         </div>
       </div>
       <div class="card" data-categoria="Otro" onclick="abrirDetalle({nombre:'Producto especial',precio:'$79.900',precioAntes:'$99.000',descuento:'-20%',imagen:'https://res.cloudinary.com/ds76fgy5m/image/upload/v1773377852/IMG-20260308-WA0002_cnfjrw.jpg',categoria:'',caracteristicas:{}})">
@@ -905,7 +905,7 @@
           <div class="card-nombre">Producto especial</div>
           <div class="card-estrellas"><span class="estrellas">★★★★☆</span><span class="num-resenas">(5)</span></div>
           <div class="card-precio"><span class="precio-actual">$79.900</span><span class="precio-antes">$99.000</span></div>
-          <button class="btn-carrito-card" onclick="event.stopPropagation();window.open('https://wa.me/573004349882?text=' + encodeURIComponent('Hola, me interesa comprar: *Producto especial* por $79.900'), '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</button>
+          <button class="btn-carrito-card" onclick="event.stopPropagation();window.open('https://wa.me/573004349882?text=' + encodeURIComponent('🛒 Hola me interesa comprar:\n🏷️ Nombre: Producto especial\n📦 Categoría: Otro.\n📋 Características:...\n✏️ Coloca nuevo item: ( Por desea pedir alguna cantidad o color en específico)'), '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Comprar ahora</button>
         </div>
       </div>
     </div>
